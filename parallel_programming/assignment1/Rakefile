@@ -31,6 +31,8 @@ namespace :coin_flip do
 
   desc "Remove compiled objects"
   task :clean do
-    system( "rm CoinFlip.class" )
+    ["CoinFlip.class, CoinFlipThread.class"].each do |class_file|
+      system( "rm #{class_file}" )
+    end
   end
 end
