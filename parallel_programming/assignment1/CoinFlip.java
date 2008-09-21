@@ -33,6 +33,14 @@ public class CoinFlip {
 	}
 
 	/**
+	 * setup two ArrayLists.
+	 */
+	private static void setupArrayLists() {
+		threads = new ArrayList<Thread>( numOfThreads );
+		coins = new ArrayList<CoinFlipThread>( numOfThreads );
+	}
+
+	/**
 	 * calculates the number of iterations per thread.
 	 */
 	private static void calculateIterationsPerThread() {
@@ -46,9 +54,6 @@ public class CoinFlip {
 	 * create/setup threads.
 	 */
 	private static void createThreads() {
-		threads = new ArrayList<Thread>( numOfThreads );
-		coins = new ArrayList<CoinFlipThread>( numOfThreads );
-
 		for( int i = 0; i < numOfThreads; i++ )
 		{
 			// handle adding remaining extra threads to last thread
@@ -76,12 +81,18 @@ public class CoinFlip {
 
 	public static void main( String[] args ) {
 		int totalHeads = 0;
-		long startTime = System.currentTimeMillis(),
+		long startTime = System.nanoTime(),
 			 endTime = 0;
 
 		parseArguments( args );
+		setupArrayLists();
 		calculateIterationsPerThread();
+		long fixedStartupCostEndTime = System.nanoTime();
+		long fixedStartupCost = fixedStartupCostEndTime - startTime;
 		createThreads();
+		long startupCostTotalThreads = System.nanoTime() - fixedStartupCostEndTime;
+		System.out.println( "Fixed Startup Cost: " + fixedStartupCost );
+		System.out.println( "Per Thread Startup Cost: " + startupCostTotalThreads );
 		runThreads();
 
 		// wait for threads to finish and calculate head count
@@ -98,7 +109,7 @@ public class CoinFlip {
 			}
 			totalHeads += coin.getHeads();
 		}
-		endTime = System.currentTimeMillis();
+		endTime = System.nanoTime();
 
 		System.out.println( totalHeads + " heads in " + numOfIterations	+ " coin tosses." );
 		System.out.println( "Elapsed time: " + ( endTime - startTime ) + "ms" );
