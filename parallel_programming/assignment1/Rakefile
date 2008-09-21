@@ -1,0 +1,36 @@
+require 'rake/clean'
+
+namespace :coin_flip do
+  desc "Speedup tests"
+  task :speedup do
+    NUMBER_OF_ITERATIONS = 10000000
+    MAX_THREADS = 8
+
+    1.upto( MAX_THREADS ) do |thread_number|
+      system( "java CoinFlip #{thread_number} #{NUMBER_OF_ITERATIONS}" )
+    end
+  end
+
+  desc "Scaleup tests"
+  task :scaleup do
+    MAX_ITERATIONS_MULTIPLIER = 8
+    ITERATIONS = 10000000
+    MAX_THREADS = 8
+    1.upto( MAX_THREADS ) do |thread_number|
+      puts "# Threads: #{thread_number}"
+      1.upto( MAX_ITERATIONS_MULTIPLIER ) do |iteration_multiplier|
+        system( "java CoinFlip 1 #{iteration_multiplier * ITERATIONS}" )
+      end
+    end
+  end
+
+  desc "Compile CoinFlip"
+  file "CoinFlip" => ['CoinFlip.java'] do
+    sh 'javac CoinFlip.java'
+  end
+
+  desc "Remove compiled objects"
+  task :clean do
+    system( "rm CoinFlip.class" )
+  end
+end
