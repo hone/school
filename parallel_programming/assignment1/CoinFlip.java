@@ -112,6 +112,6 @@ public class CoinFlip {
 		endTime = System.nanoTime();
 
 		System.out.println( totalHeads + " heads in " + numOfIterations	+ " coin tosses." );
-		System.out.println( "Elapsed time: " + ( endTime - startTime ) + "ms" );
+		System.out.println( "Elapsed time: " + ( endTime - startTime ) + "ns" );
 	}
 }
