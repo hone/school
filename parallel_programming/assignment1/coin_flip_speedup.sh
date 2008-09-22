@@ -19,8 +19,8 @@ do
 		for(( k=1; k<=$2; k++ ));
 		do
 			let ITERATIONS=10000000*k
-			echo "Executing CoinFlip with $k thread for $ITERATIONS coin flips"
-			java CoinFlip $k $ITERATIONS
+			echo "Executing CoinFlip with $j thread for $ITERATIONS coin flips"
+			java CoinFlip $j $ITERATIONS
 		done
 	done
 done
