@@ -12,13 +12,12 @@
 #Execute the initialization script
 . $HOME/.bashrc
 
-echo "#Iteration	Threads	ElapsedTime"
-for(( i=1; i<=20; i++ ));
+#echo "#Iteration	Threads	ElapsedTime"
+for(( k=1; k<=$2; k++ ));
 do
-	#echo "#Executing CoinFlip with $j thread for $ITERATIONS coin flips"
 	for(( j=1; j<=$1; j++ ));
 	do
-		for(( k=1; k<=$2; k++ ));
+        for(( i=1; i<=20; i++ ));
 		do
 			let ITERATIONS=10000000*k
 			java CoinFlip $j $ITERATIONS $i

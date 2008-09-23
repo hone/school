@@ -17,7 +17,7 @@ public class CoinFlip {
 	static ArrayList<CoinFlipThread> coins;
 
 	/**
-	 * parse the command line arguments
+	 * parse the command line arguments.  input1 is number of threads, input2 is the number of coinflips, input3 is the iteration run number.
 	 * @param args command line arguments
 	 */
 	private static void parseArguments( String[] args ) {
@@ -124,6 +124,7 @@ public class CoinFlip {
 				System.out.println( "Elapsed time: " + elapsedTime + "ms" );
 				break;
             default:
+                // Print the Iteration, Thread Count, Elapsed Time for 3-way tab delimited columns
 				System.out.println( outputFormat  + "\t\t" + numOfThreads + "\t" + elapsedTime );
                 break;
 		}
