@@ -35,4 +35,14 @@ namespace :coin_flip do
       system( "rm #{class_file}" )
     end
   end
+
+  desc "Use coin_flip_speedup.sh"
+  task :speedup_sh do
+    NUMBER_OF_ITERATIONS = 10000000
+    MAX_THREADS = 8
+
+    1.upto( MAX_THREADS ) do |thread_number|
+      system( "./coin_flip_speedup.sh #{thread_number} #{NUMBER_OF_ITERATIONS}" )
+    end
+  end
 end

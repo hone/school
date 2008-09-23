@@ -4,8 +4,8 @@ class CoinFlipThread implements Runnable {
 	private Random random;
 	private int heads;
 	private int runs;
-	final static int HEADS = 0;
-	final static int TAILS = 1;
+	final static boolean HEADS = true;
+	final static boolean TAILS = false;
 
 	/**
 	 * Constructor.
@@ -22,7 +22,7 @@ class CoinFlipThread implements Runnable {
 	 */
 	public void run() {
 		for( int i = 0; i < runs; i++ ) {
-			if( random.nextInt() % 2 == HEADS ) {
+			if( random.nextBoolean() == HEADS ) {
 				this.heads++;
 			}
 		}

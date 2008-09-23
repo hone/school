@@ -5,10 +5,14 @@ import java.util.Iterator;
  * Flips coins in parallel
  */
 public class CoinFlip {
+	static final int DEFAULT = 0;
+	static final int PLOT = 1;
+
 	static int numOfThreads;
 	static int numOfIterations;
 	static int numOfIterationsPerThread;
 	static int numOfExtraIterations;
+	static int outputFormat;
 	static ArrayList<Thread> threads;
 	static ArrayList<CoinFlipThread> coins;
 
@@ -26,6 +30,13 @@ public class CoinFlip {
 		try {
 			numOfThreads = Integer.parseInt( args[0] );
 			numOfIterations = Integer.parseInt( args[1] );
+			
+			// parse output specifier
+			if( args.length > 2 ) {
+				outputFormat = Integer.parseInt( args[2] );
+			} else {
+				outputFormat = DEFAULT;
+			}
 		} catch( NumberFormatException e ) {
 			System.err.println( "Not a proper number: " + e.getMessage() );
 			System.exit( 0 );
@@ -81,18 +92,13 @@ public class CoinFlip {
 
 	public static void main( String[] args ) {
 		int totalHeads = 0;
-		long startTime = System.nanoTime(),
+		long startTime = System.currentTimeMillis(),
 			 endTime = 0;
 
 		parseArguments( args );
 		setupArrayLists();
 		calculateIterationsPerThread();
-		long fixedStartupCostEndTime = System.nanoTime();
-		long fixedStartupCost = fixedStartupCostEndTime - startTime;
 		createThreads();
-		long startupCostTotalThreads = System.nanoTime() - fixedStartupCostEndTime;
-		System.out.println( "Fixed Startup Cost: " + fixedStartupCost );
-		System.out.println( "Per Thread Startup Cost: " + startupCostTotalThreads );
 		runThreads();
 
 		// wait for threads to finish and calculate head count
@@ -109,9 +115,17 @@ public class CoinFlip {
 			}
 			totalHeads += coin.getHeads();
 		}
-		endTime = System.nanoTime();
+		endTime = System.currentTimeMillis();
+		long elapsedTime = endTime - startTime;
 
-		System.out.println( totalHeads + " heads in " + numOfIterations	+ " coin tosses." );
-		System.out.println( "Elapsed time: " + ( endTime - startTime ) + "ns" );
+		switch( outputFormat ) {
+			case DEFAULT:
+				System.out.println( totalHeads + " heads in " + numOfIterations	+ " coin tosses." );
+				System.out.println( "Elapsed time: " + elapsedTime + "ms" );
+				break;
+            default:
+				System.out.println( outputFormat  + "\t\t" + numOfThreads + "\t" + elapsedTime );
+                break;
+		}
 	}
 }
