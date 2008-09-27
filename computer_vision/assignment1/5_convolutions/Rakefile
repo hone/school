@@ -1,0 +1,24 @@
+require 'rake/clean'
+
+CLEAN.include( '*.gch', '*.o' )
+CLOBBER.include( 'convolutions' )
+
+CC = 'gcc'
+CFLAGS = `pkg-config --cflags opencv`
+LFLAGS = `pkg-config --libs opencv`
+
+OBJECTS = ['convolutions.o', 'image_loader.o']
+
+task :default => ["convolutions"]
+
+file "convolutions" => OBJECTS do
+  sh "#{CC} -o convolutions #{OBJECTS.join( ' ' )} #{LFLAGS}"
+end
+
+file "convolutions.o" => ['convolutions.cpp'] do
+  sh "#{CC} -c convolutions.cpp #{CFLAGS}"
+end
+
+file "image_loader.o" => ['image_loader.cpp', 'image_loader.h'] do
+  sh "#{CC} -c image_loader.cpp #{CFLAGS}"
+end
