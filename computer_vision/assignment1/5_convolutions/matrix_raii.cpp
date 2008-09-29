@@ -1,6 +1,11 @@
 #include "matrix_raii.h"
 #include <stdio.h>
 
+MatrixRAII::MatrixRAII()
+{
+    this->matrix = NULL;
+}
+
 MatrixRAII::MatrixRAII( CvMat * mat )
 {
     this->matrix = mat;

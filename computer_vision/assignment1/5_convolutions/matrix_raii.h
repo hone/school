@@ -9,12 +9,16 @@ class MatrixRAII
 		CvMat * matrix;
 
 		/**
-		 * Constructor.  Takes in a CvMatrix.
+		 * Default constructor. Sets matrix to null.
+		 */
+		MatrixRAII();
+		/**
+		 * Constructor.  Takes in a CvMat.
 		 * @param mat CvMatrix for the object to use
 		 */
 		MatrixRAII( CvMat * mat );
 		/**
-		 * Cleans up the CvMatrix.
+		 * Cleans up the CvMat.
 		 */
 		~MatrixRAII();
 

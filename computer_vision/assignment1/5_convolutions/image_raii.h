@@ -4,28 +4,33 @@
 // OpenCV libs
 #include <highgui.h>
 
-#ifndef _IMAGE_H
-#define _IMAGE_H
+#ifndef _IMAGE_RAII_H
+#define _IMAGE_RAII_H
 
-class ImageLoader
+class ImageRAII
 {
 	public:
 		IplImage * image;
 
+        /**
+         * Default constructor.  sets the image pointer to null.
+         */
+        ImageRAII();
+
 		/**
-		 * Construct ImageLoader object using the given filename.
+		 * Construct ImageRAII object using the given filename.
 		 * @param filename name of the file.
 		 */
-		ImageLoader( std::string filename );
+		ImageRAII( std::string filename );
 		/**
-		 * Construct ImageLoader object using the given image.
+		 * Construct ImageRAII object using the given image.
 		 * @param image image to use
 		 */
-		ImageLoader( IplImage * image );
+		ImageRAII( IplImage * image );
 		/**
 		 * Releases image.
 		 */
-		~ImageLoader();
+		~ImageRAII();
 
 	private:
 		/**

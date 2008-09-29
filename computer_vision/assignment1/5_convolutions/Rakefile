@@ -7,7 +7,7 @@ CC = 'gcc'
 CFLAGS = `pkg-config --cflags opencv`
 LFLAGS = `pkg-config --libs opencv`
 
-OBJECTS = ['convolutions.o', 'image_loader.o']
+OBJECTS = ['convolutions.o', 'image_raii.o', 'matrix_raii.o']
 
 task :default => ["convolutions"]
 
@@ -19,6 +19,10 @@ file "convolutions.o" => ['convolutions.cpp'] do
   sh "#{CC} -c convolutions.cpp #{CFLAGS}"
 end
 
-file "image_loader.o" => ['image_loader.cpp', 'image_loader.h'] do
-  sh "#{CC} -c image_loader.cpp #{CFLAGS}"
+file "image_raii.o" => ['image_raii.cpp', 'image_raii.h'] do
+  sh "#{CC} -c image_raii.cpp #{CFLAGS}"
+end
+
+file "matrix_raii.o" => ['matrix_raii.cpp', 'matrix_raii.h'] do
+  sh "#{CC} -c matrix_raii.cpp #{CFLAGS}"
 end

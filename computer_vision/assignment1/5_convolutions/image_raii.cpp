@@ -1,23 +1,28 @@
-#include "image_loader.h"
+#include "image_raii.h"
 
-ImageLoader::ImageLoader( std::string filename )
+ImageRAII::ImageRAII()
+{
+    this->image = NULL;
+}
+
+ImageRAII::ImageRAII( std::string filename )
 {
 	this->image = cvLoadImage( filename.c_str() );
 	checkImageLoad( filename );
 }
 
-ImageLoader::ImageLoader( IplImage * image )
+ImageRAII::ImageRAII( IplImage * image )
 {
 	this->image = image;
 	checkImageLoad( "" );
 }
 
-ImageLoader::~ImageLoader()
+ImageRAII::~ImageRAII()
 {
 	cvReleaseImage( &this->image );
 }
 
-void ImageLoader::checkImageLoad( std::string message )
+void ImageRAII::checkImageLoad( std::string message )
 {
 	if( !this->image )
 	{
