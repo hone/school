@@ -74,9 +74,7 @@ MatrixRAII make1DGaussianFilter( double sigma )
 
 int main( int argc, char * argv[] )
 {
-	const char * ORIGINAL_IMAGE_WINDOW_NAME = "Original Image";
-	const char * BOX_FILTER_WINDOW_NAME = "Box Filter";
-	const char * GAUSSIAN_FILTER_WINDOW_NAME = "Gaussian Filter";
+	const char * WINDOW_NAME = "Original Image vs. Box Filter vs. Gaussian";
 	const int QUIT_KEY_CODE = 113;
 
 	int box_filter_width = 3;
@@ -86,6 +84,7 @@ int main( int argc, char * argv[] )
 	CvSize image_dimensions = { original_image.image->width, original_image.image->height };
 	ImageRAII box_filter_image( cvCreateImage( image_dimensions, original_image.image->depth, 3 ) );
 	ImageRAII gaussian_image( cvCreateImage( image_dimensions, original_image.image->depth, 3 ) );
+	ImageRAII combined_image( cvCreateImage( cvSize( original_image.image->width * 3, original_image.image->height ), original_image.image->depth, 3 ) );
 	MatrixRAII box_filter = makeBoxFilter( box_filter_width );
 	MatrixRAII gaussian_filter_x = make1DGaussianFilter( sigma );
 	MatrixRAII gaussian_filter_y = cvCreateMat( sigma * 5, 1, CV_64FC1 );
@@ -119,16 +118,46 @@ int main( int argc, char * argv[] )
 	cvMerge( box_filter_channels[0].image, box_filter_channels[1].image, box_filter_channels[2].image, NULL, box_filter_image.image );
 	cvMerge( gaussian_filter_2_channels[0].image, gaussian_filter_2_channels[1].image, gaussian_filter_2_channels[2].image, NULL, gaussian_image.image );
 
+	// Combine images side by side
+	int step = original_image.image->widthStep;
+	int step_destination = combined_image.image->widthStep;
+	int nChan = original_image.image->nChannels;
+	char *buf = combined_image.image->imageData;
+	char *original_buf = original_image.image->imageData;
+	char *box_filter_buf = box_filter_image.image->imageData;
+	char *gaussian_filter_buf = gaussian_image.image->imageData;
+
+	for( int row = 0; row < original_image.image->width; row++ )
+	{
+		for( int col = 0; col < original_image.image->height; col++ )
+		{
+			int width_adjust = 0;
+
+			//original image
+			// blue
+			*( buf + row * step_destination + nChan * col + width_adjust ) = *( original_buf + row * step + nChan * col );
+			// green
+			*( buf + row * step_destination + nChan * col + 1 + width_adjust ) = *( original_buf + row * step + nChan * col );
+			// red
+			*( buf + row * step_destination + nChan * col + 2 + width_adjust ) = *( original_buf + row * step + nChan * col );
+
+			// box filter
+			width_adjust = original_image.image->height * nChan;
+			*( buf + row * step_destination + nChan * col + width_adjust ) = *( box_filter_buf + row * step + nChan * col );
+			*( buf + row * step_destination + nChan * col + 1 + width_adjust ) = *( box_filter_buf + row * step + nChan * col );
+			*( buf + row * step_destination + nChan * col + 2 + width_adjust ) = *( box_filter_buf + row * step + nChan * col );
+
+			// gaussian filter
+			width_adjust = original_image.image->height * 2 * nChan;
+			*( buf + row * step_destination + nChan * col + width_adjust ) = *( gaussian_filter_buf + row * step + nChan * col );
+			*( buf + row * step_destination + nChan * col + 1 + width_adjust ) = *( gaussian_filter_buf + row * step + nChan * col );
+			*( buf + row * step_destination + nChan * col + 2 + width_adjust ) = *( gaussian_filter_buf + row * step + nChan * col );
+		}
+	}
+
 	// create windows
-	cvNamedWindow( ORIGINAL_IMAGE_WINDOW_NAME, CV_WINDOW_AUTOSIZE );
-	cvShowImage( ORIGINAL_IMAGE_WINDOW_NAME, original_image.image );
-	cvMoveWindow( ORIGINAL_IMAGE_WINDOW_NAME, 0, 0 );
-	cvNamedWindow( BOX_FILTER_WINDOW_NAME, CV_WINDOW_AUTOSIZE );
-	cvShowImage( BOX_FILTER_WINDOW_NAME, box_filter_image.image );
-	cvMoveWindow( BOX_FILTER_WINDOW_NAME, original_image.image->width, 0 );
-	cvNamedWindow( GAUSSIAN_FILTER_WINDOW_NAME, CV_WINDOW_AUTOSIZE );
-	cvShowImage( GAUSSIAN_FILTER_WINDOW_NAME, gaussian_image.image );
-	cvMoveWindow( GAUSSIAN_FILTER_WINDOW_NAME, original_image.image->width + box_filter_image.image->width, 0 );
+	cvNamedWindow( WINDOW_NAME, CV_WINDOW_AUTOSIZE );
+	cvShowImage( WINDOW_NAME, combined_image.image );
 
 	// wait for keyboard input
 	int key_code = 0;
