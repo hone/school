@@ -2,8 +2,8 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
-#include "image_raii.h"
-#include "matrix_raii.h"
+#include <image_raii.h>
+#include <matrix_raii.h>
 #include <cv.h>
 #include <highgui.h>
 

@@ -3,9 +3,11 @@ require 'rake/clean'
 CLEAN.include( '*.gch', '*.o' )
 CLOBBER.include( 'convolutions' )
 
+OPENCV_UTILS = '../../opencv_utils'
+
 CC = 'gcc'
-CFLAGS = `pkg-config --cflags opencv`
-LFLAGS = `pkg-config --libs opencv`
+CFLAGS = `pkg-config --cflags opencv`.chomp + "-I#{OPENCV_UTILS}"
+LFLAGS = `pkg-config --libs opencv`.chomp
 
 OBJECTS = ['convolutions.o', 'image_raii.o', 'matrix_raii.o']
 
@@ -15,14 +17,14 @@ file "convolutions" => OBJECTS do
   sh "#{CC} -o convolutions #{OBJECTS.join( ' ' )} #{LFLAGS}"
 end
 
-file "convolutions.o" => ['convolutions.cpp'] do
+file "convolutions.o" => ['convolutions.cpp', "#{OPENCV_UTILS}/image_raii.cpp"] do
   sh "#{CC} -c convolutions.cpp #{CFLAGS}"
 end
 
-file "image_raii.o" => ['image_raii.cpp', 'image_raii.h'] do
-  sh "#{CC} -c image_raii.cpp #{CFLAGS}"
+file "image_raii.o" => ["#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/image_raii.h"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/image_raii.cpp #{CFLAGS}"
 end
 
-file "matrix_raii.o" => ['matrix_raii.cpp', 'matrix_raii.h'] do
-  sh "#{CC} -c matrix_raii.cpp #{CFLAGS}"
+file "matrix_raii.o" => ["#{OPENCV_UTILS}/matrix_raii.cpp", "#{OPENCV_UTILS}/matrix_raii.h"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/matrix_raii.cpp #{CFLAGS}"
 end
