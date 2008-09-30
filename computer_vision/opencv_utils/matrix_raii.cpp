@@ -1,4 +1,4 @@
-#include <matrix_raii.h>
+#include <matrix_raii.hpp>
 #include <stdio.h>
 
 MatrixRAII::MatrixRAII()

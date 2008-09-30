@@ -1,5 +1,6 @@
 #include <string>
-#include <image_raii.h>
+#include <image_raii.hpp>
+#include <histogram_raii.hpp>
 #include <cv.h>
 #include <highgui.h>
 
@@ -63,12 +64,41 @@ CvRect specifyROI( ImageRAII &image )
 	return image_roi;
 }
 
+/**
+ * Makes a hue histogram given the image for a specified number of bins.
+ * @param image image to generate hue histogram off of.
+ * @param bins number of bins to use in the histogram
+ */
+HistogramRAII makeHueHistogram( ImageRAII image, int bins )
+{
+	ImageRAII image_hsv( cvCreateImage( cvGetSize( image.image ), image.image->depth, 3 ) );
+	ImageRAII hue_plane( cvCreateImage( cvGetSize( image.image ), image.image->depth, 1 ) );
+	ImageRAII saturation_plane( cvCreateImage( cvGetSize( image.image ), image.image->depth, 1 ) );
+	IplImage * planes[] = { hue_plane.image };
+	ImageRAII value_plane( cvCreateImage( cvGetSize( image.image ), image.image->depth, 1 ) );
+	int hist_size[] = { bins };
+	float hist_ranges[] = { 0, 360 };
+	float *ranges[] = { hist_ranges };
+
+	// Convert RGB to HSV
+	cvCvtColor( image.image, image_hsv.image, CV_BGR2HSV );
+	// Split HSV Channels
+	cvCvtPixToPlane( image_hsv.image, hue_plane.image, saturation_plane.image, value_plane.image, 0 );
+	HistogramRAII hue_histogram( cvCreateHist( 1, hist_size, CV_HIST_ARRAY, ranges, 1 ) );
+	cvCalcHist( planes, hue_histogram.histogram, 0, 0 );
+
+	return hue_histogram;
+}
+
 int main( int argc, char * agv[] )
 {
+	const int BINS = 10;
+
 	ImageRAII friends_image( "Friends.jpg" );
 	CvRect image_roi = specifyROI( friends_image );
 
 	cvSetImageROI( friends_image.image, image_roi );
+	makeHueHistogram( friends_image, BINS );
 
 	return 0;
 }

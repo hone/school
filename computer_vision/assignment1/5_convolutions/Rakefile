@@ -21,10 +21,10 @@ file "convolutions.o" => ['convolutions.cpp', "#{OPENCV_UTILS}/image_raii.cpp"] 
   sh "#{CC} -c convolutions.cpp #{CFLAGS}"
 end
 
-file "image_raii.o" => ["#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/image_raii.h"] do
+file "image_raii.o" => ["#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/image_raii.hpp"] do
   sh "#{CC} -c #{OPENCV_UTILS}/image_raii.cpp #{CFLAGS}"
 end
 
-file "matrix_raii.o" => ["#{OPENCV_UTILS}/matrix_raii.cpp", "#{OPENCV_UTILS}/matrix_raii.h"] do
+file "matrix_raii.o" => ["#{OPENCV_UTILS}/matrix_raii.cpp", "#{OPENCV_UTILS}/matrix_raii.hpp"] do
   sh "#{CC} -c #{OPENCV_UTILS}/matrix_raii.cpp #{CFLAGS}"
 end

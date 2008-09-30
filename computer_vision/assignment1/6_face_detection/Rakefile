@@ -9,7 +9,7 @@ CC = 'gcc'
 CFLAGS = `pkg-config --cflags opencv`.chomp + "-I#{OPENCV_UTILS}"
 LFLAGS = `pkg-config --libs opencv`.chomp
 
-OBJECTS = ['face_detection.o', 'image_raii.o', 'matrix_raii.o']
+OBJECTS = ['face_detection.o', 'image_raii.o', 'histogram_raii.o']
 
 task :default => ["face_detection"]
 
@@ -21,10 +21,10 @@ file "face_detection.o" => ['face_detection.cpp', "#{OPENCV_UTILS}/image_raii.cp
   sh "#{CC} -c face_detection.cpp #{CFLAGS}"
 end
 
-file "image_raii.o" => ["#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/image_raii.h"] do
+file "image_raii.o" => ["#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/image_raii.hpp"] do
   sh "#{CC} -c #{OPENCV_UTILS}/image_raii.cpp #{CFLAGS}"
 end
 
-file "matrix_raii.o" => ["#{OPENCV_UTILS}/matrix_raii.cpp", "#{OPENCV_UTILS}/matrix_raii.h"] do
-  sh "#{CC} -c #{OPENCV_UTILS}/matrix_raii.cpp #{CFLAGS}"
+file "histogram_raii.o" => ["#{OPENCV_UTILS}/histogram_raii.cpp", "#{OPENCV_UTILS}/histogram_raii.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/histogram_raii.cpp #{CFLAGS}"
 end
