@@ -3,7 +3,7 @@ require 'gnuplot'
 require 'coin_flip_data_parser'
 
 parser = CoinFlipDataParser.new( ARGV[0] )
-MAX_THREADS = parser.data.size - 1
+MAX_THREADS = parser.data.size - 2
 puts parser.data[0].inspect
 
 # graph data with gnuplot
