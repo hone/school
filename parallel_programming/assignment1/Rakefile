@@ -39,7 +39,7 @@ namespace :coin_flip do
     end
   end
 
-  desc "Use coin_flip.sh"
+  desc "Use coin_flip_speedup.sh"
   task :speedup_sh do
     ITERATION_MAX_MULTIPLIER = 1
     MAX_THREADS = 8
@@ -47,7 +47,7 @@ namespace :coin_flip do
     system( "./coin_flip_speedup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{SPEEDUP}" )
   end
 
-  desc "Use coin_flip.sh through qsub"
+  desc "Use coin_flip_speedup.sh through qsub"
   task :qsub_speedup_sh do
     ITERATION_MAX_MULTIPLIER = 1
     MAX_THREADS = 8
@@ -62,6 +62,16 @@ namespace :coin_flip do
 
     1.upto( MAX_THREADS ) do |thread|
       system( "./coin_flip_scaleup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{SCALEUP} > thread#{thread}.dat" )
+    end
+  end
+
+  desc "Use coin_flip_scaleup.sh through qsub"
+  task :qsub_scaleup_sh do
+    ITERATION_MAX_MULTIPLIER = 8
+    MAX_THREADS = 8
+
+    1.upto( MAX_THREADS ) do |thread|
+      system( "qsub coin_flip_scaleup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{SCALEUP}" )
     end
   end
 end

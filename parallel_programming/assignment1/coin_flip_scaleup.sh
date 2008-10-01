@@ -20,6 +20,6 @@ do
 	for(( i=1; i<=20; i++ ));
 	do
 		let ITERATIONS=10000000*j
-		java CoinFlip $1 $j $ITERATIONS $i $3
+		java CoinFlip $1 $ITERATIONS $i $3
 	done
 done
