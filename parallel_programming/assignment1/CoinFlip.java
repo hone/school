@@ -6,18 +6,20 @@ import java.util.Iterator;
  */
 public class CoinFlip {
 	static final int DEFAULT = 0;
-	static final int PLOT = 1;
+	static final int SPEEDUP = 1;
+	static final int SCALEUP = 2;
 
 	static int numOfThreads;
 	static int numOfIterations;
 	static int numOfIterationsPerThread;
 	static int numOfExtraIterations;
 	static int outputFormat;
+	static int iterationNumber;
 	static ArrayList<Thread> threads;
 	static ArrayList<CoinFlipThread> coins;
 
 	/**
-	 * parse the command line arguments.  input1 is number of threads, input2 is the number of coinflips, input3 is the iteration run number.
+	 * parse the command line arguments.  input1 is number of threads, input2 is the number of coinflips, input3 output format, input4 iteration number
 	 * @param args command line arguments
 	 */
 	private static void parseArguments( String[] args ) {
@@ -32,8 +34,9 @@ public class CoinFlip {
 			numOfIterations = Integer.parseInt( args[1] );
 			
 			// parse output specifier
-			if( args.length > 2 ) {
-				outputFormat = Integer.parseInt( args[2] );
+			if( args.length >= 4 ) {
+				iterationNumber = Integer.parseInt( args[2] );
+				outputFormat = Integer.parseInt( args[3] );
 			} else {
 				outputFormat = DEFAULT;
 			}
@@ -123,10 +126,16 @@ public class CoinFlip {
 				System.out.println( totalHeads + " heads in " + numOfIterations	+ " coin tosses." );
 				System.out.println( "Elapsed time: " + elapsedTime + "ms" );
 				break;
-            default:
+			case SPEEDUP:
                 // Print the Iteration, Thread Count, Elapsed Time for 3-way tab delimited columns
-				System.out.println( outputFormat  + "\t\t" + numOfThreads + "\t" + elapsedTime );
+				System.out.println( iterationNumber + "\t" + numOfIterations + "\t\t" + numOfThreads + "\t" + elapsedTime );
                 break;
+			case SCALEUP:
+                // Print the Iteration, Thread Count, Elapsed Time for 3-way tab delimited columns
+				System.out.println( iterationNumber + "\t" + numOfIterations  + "\t\t" + numOfThreads + "\t" + elapsedTime );
+				break;
+			default:
+				break;
 		}
 	}
 }
