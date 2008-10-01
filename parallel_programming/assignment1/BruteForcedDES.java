@@ -7,6 +7,10 @@ import javax.crypto.SealedObject;
  * Brute forces a DES encryption
  */
 class BruteForcedDES implements Runnable {
+	final static int PRINT_TIME = 100000;
+	final static int DEFAULT = 0;
+	final static int PLOT = 1;
+
 	private int id;
 	private SealedObject sealedObject;
 	private ArrayList<Long> keys;
@@ -41,30 +45,37 @@ class BruteForcedDES implements Runnable {
 			if (( decryptstr != null ) && ( decryptstr.indexOf ( "Hopkins" ) != -1 ))
 			{
 				//  Remote printlns if running for time.
-				System.out.println (  "Thread " + this.id + " Found decrypt key " + key + " producing message: " + decryptstr );
+				//System.out.println (  "Thread " + this.id + " Found decrypt key " + key + " producing message: " + decryptstr );
 			}
 
 			// Update progress every once in awhile.
 			//  Remote printlns if running for time.
-			if ( key % 100000 == 0 )
+			if ( key % PRINT_TIME == 0 )
 			{ 
 				long elapsed = System.currentTimeMillis() - runStart;
-				System.out.println ( "Thread " + this.id + " Searched key number " + key + " at " + elapsed + " milliseconds.");
+				//System.out.println ( "Thread " + this.id + " Searched key number " + key + " at " + elapsed + " milliseconds.");
 			}
 		}
 	}
 
 	// Program demonstrating how to create a random key and then search for the key value.
 	public static void main( String[] args ) {
-		if ( 2 != args.length )
+		if ( args.length < 2 )
 		{
-			System.out.println ("Usage: java SealedDES threads key_size_in_bits");
+			System.out.println ("Usage: java SealedDES threads key_size_in_bits outputFormat iterationNumber");
 			return;
 		}
 
 		// Get the argument
 		int numOfThreads = Integer.parseInt( args[0] );
 		long keybits = Long.parseLong( args[1] );
+		int outputFormat = DEFAULT;
+		int iterationNumber = 0;
+		
+		if( args.length > 2 ) {
+			outputFormat = Integer.parseInt( args[2] );
+			iterationNumber = Integer.parseInt( args[3] );
+		}
 
 		// Hideous weirdness to deal with the absence of unsigned ints
 		//   and my desire to avoid an unnecessary exponentiation.
@@ -103,7 +114,6 @@ class BruteForcedDES implements Runnable {
 
 		// divide keyspace among threads
 		ArrayList<ArrayList<Long>> keyRanges = new ArrayList<ArrayList<Long>>( numOfThreads );
-		System.out.println( keyRanges.size() );
 		for( int i = 0; i < numOfThreads; i++ ) {
 			keyRanges.add( new ArrayList<Long>() );
 		}
@@ -140,7 +150,14 @@ class BruteForcedDES implements Runnable {
 		// Output search time
 		long elapsed = System.currentTimeMillis() - runstart;
 		long keys = maxkey + 1;
-		System.out.println( "Completed search of " + keys + " keys at " + elapsed + " milliseconds.");
-		System.out.println( "Final elapsed time: " + elapsed );
+
+		switch( outputFormat ) {
+			case PLOT:
+				System.out.println( iterationNumber + "\t" + numOfThreads + "\t" + keys + "\t" + elapsed );
+                break;
+			default:
+				System.out.println( "Completed search of " + keys + " keys at " + elapsed + " milliseconds.");
+				System.out.println( "Final elapsed time: " + elapsed );
+		}
 	}
 }

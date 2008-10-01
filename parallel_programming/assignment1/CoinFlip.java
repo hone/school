@@ -5,9 +5,7 @@ import java.util.Iterator;
  * Flips coins in parallel
  */
 public class CoinFlip {
-	static final int DEFAULT = 0;
-	static final int SPEEDUP = 1;
-	static final int SCALEUP = 2;
+	static final int PLOT = 1;
 
 	static int numOfThreads;
 	static int numOfIterations;
@@ -122,19 +120,13 @@ public class CoinFlip {
 		long elapsedTime = endTime - startTime;
 
 		switch( outputFormat ) {
-			case DEFAULT:
-				System.out.println( totalHeads + " heads in " + numOfIterations	+ " coin tosses." );
-				System.out.println( "Elapsed time: " + elapsedTime + "ms" );
-				break;
-			case SPEEDUP:
-                // Print the Iteration, Thread Count, Elapsed Time for 3-way tab delimited columns
+			case PLOT:
+                // Print the Iteration, Number of Iterations Thread Count, Elapsed Time for 4-way tab delimited columns
 				System.out.println( iterationNumber + "\t" + numOfIterations + "\t\t" + numOfThreads + "\t" + elapsedTime );
                 break;
-			case SCALEUP:
-                // Print the Iteration, Thread Count, Elapsed Time for 3-way tab delimited columns
-				System.out.println( iterationNumber + "\t" + numOfIterations  + "\t\t" + numOfThreads + "\t" + elapsedTime );
-				break;
 			default:
+				System.out.println( totalHeads + " heads in " + numOfIterations	+ " coin tosses." );
+				System.out.println( "Elapsed time: " + elapsedTime + "ms" );
 				break;
 		}
 	}

@@ -1,7 +1,6 @@
 require 'rake/clean'
 
-SPEEDUP = 1
-SCALEUP = 2
+PLOT = 1
 
 namespace :coin_flip do
   desc "Speedup tests"
@@ -44,7 +43,7 @@ namespace :coin_flip do
     ITERATION_MAX_MULTIPLIER = 1
     MAX_THREADS = 8
 
-    system( "./coin_flip_speedup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{SPEEDUP}" )
+    system( "./coin_flip_speedup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{PLOT}" )
   end
 
   desc "Use coin_flip_speedup.sh through qsub"
@@ -52,7 +51,7 @@ namespace :coin_flip do
     ITERATION_MAX_MULTIPLIER = 1
     MAX_THREADS = 8
 
-    system( "qsub coin_flip_speedup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{SPEEDUP}" )
+    system( "qsub coin_flip_speedup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{PLOT}" )
   end
 
   desc "Use coin_flip_speedup.sh"
@@ -61,7 +60,7 @@ namespace :coin_flip do
     MAX_THREADS = 8
 
     1.upto( MAX_THREADS ) do |thread|
-      system( "./coin_flip_scaleup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{SCALEUP} > thread#{thread}.dat" )
+      system( "./coin_flip_scaleup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{PLOT} > thread#{thread}.dat" )
     end
   end
 
@@ -71,7 +70,37 @@ namespace :coin_flip do
     MAX_THREADS = 8
 
     1.upto( MAX_THREADS ) do |thread|
-      system( "qsub coin_flip_scaleup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{SCALEUP}" )
+      system( "qsub coin_flip_scaleup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{PLOT}" )
+    end
+  end
+end
+
+namespace :brute_force_des do
+  desc "Speedup tests"
+  task :speedup do
+    KEY_SIZE = 20
+    MAX_THREADS = 8
+    ITERATIONS = 20
+
+    1.upto( MAX_THREADS ) do |thread_number|
+      1.upto( ITERATIONS ) do |iteration|
+        system( "java BruteForcedDES #{thread_number} #{KEY_SIZE} #{iteration} #{PLOT}" )
+      end
+    end
+  end
+
+  desc "Scaleup tests"
+  task :scaleup do
+    KEY_SIZE =  20
+    MAX_THREADS = 8
+    ITERATIONS = 20
+    
+    1.upto( MAX_THREADS ) do |thread_number|
+      1.upto( KEY_SIZE ) do |key_size|
+        1.upto( ITERATIONS ) do |iteration|
+          system( "java BruteForcedDES #{thread_number} #{key_size} #{iteration} #{PLOT} > brute_force_thread#{thread_number}.dat " )
+        end
+      end
     end
   end
 end
