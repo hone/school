@@ -96,7 +96,7 @@ HistogramRAII makeHueHistogram( IplImage * image, int bins )
  * @param histogram hue histogram
  * @param bins number of bins
  */
-float * makeProbabilityMap( IplImage * image, HistogramRAII histogram, int bins )
+float * makeProbabilityMap( IplImage * image, CvHistogram * histogram, int bins )
 {
 	CvSize image_size = cvGetSize( image );
 	float sum = 0;
@@ -105,7 +105,7 @@ float * makeProbabilityMap( IplImage * image, HistogramRAII histogram, int bins 
 
 	for( int i = 0; i < bins; i++ )
 	{
-		int bin_value = cvQueryHistValue_1D( histogram.histogram, i );
+		int bin_value = cvQueryHistValue_1D( histogram, i );
 		sum += bin_value;
 		bin_values[i] = bin_value;
 	}
