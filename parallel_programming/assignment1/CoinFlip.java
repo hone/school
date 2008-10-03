@@ -5,6 +5,7 @@ import java.util.Iterator;
  * Flips coins in parallel
  */
 public class CoinFlip {
+	static final int DEFAULT = 0;
 	static final int PLOT = 1;
 
 	static int numOfThreads;

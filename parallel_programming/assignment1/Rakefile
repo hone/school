@@ -103,4 +103,11 @@ namespace :brute_force_des do
       end
     end
   end
+
+  desc "Speedup sh file"
+  task :speedup_sh do
+    MAX_THREADS = 8
+    KEY_SIZE = 5
+    system( "./brute_force_des.sh #{MAX_THREADS} #{KEY_SIZE} #{PLOT}" )
+  end
 end

@@ -73,8 +73,8 @@ class BruteForcedDES implements Runnable {
 		int iterationNumber = 0;
 		
 		if( args.length > 2 ) {
-			outputFormat = Integer.parseInt( args[2] );
-			iterationNumber = Integer.parseInt( args[3] );
+			outputFormat = Integer.parseInt( args[3] );
+			iterationNumber = Integer.parseInt( args[2] );
 		}
 
 		// Hideous weirdness to deal with the absence of unsigned ints
@@ -158,6 +158,7 @@ class BruteForcedDES implements Runnable {
 			default:
 				System.out.println( "Completed search of " + keys + " keys at " + elapsed + " milliseconds.");
 				System.out.println( "Final elapsed time: " + elapsed );
+				break;
 		}
 	}
 }
