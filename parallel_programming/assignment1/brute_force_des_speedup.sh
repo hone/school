@@ -14,7 +14,7 @@
 
 #echo "#Iteration	Threads	ElapsedTime"
 # key size
-for(( k=5; k<=$2; k++ ));
+for(( k=20; k<=$2; k++ ));
 do
 	# max threads
 	for(( j=1; j<=$1; j++ ));

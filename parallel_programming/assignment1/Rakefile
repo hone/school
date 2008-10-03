@@ -108,13 +108,23 @@ namespace :brute_force_des do
   task :speedup_sh do
     MAX_THREADS = 8
     KEY_SIZE = 20
-    system( "./brute_force_des.sh #{MAX_THREADS} #{KEY_SIZE} #{PLOT}" )
+    system( "./brute_force_des_speedup.sh #{MAX_THREADS} #{KEY_SIZE} #{PLOT}" )
   end
 
-  desc "Speedup sh rod"
+  desc "Speedup sh qsub"
   task :qsub_speedup_sh do
     MAX_THREADS = 8
     KEY_SIZE = 20
-    system( "qsub brute_force_des.sh #{MAX_THREADS} #{KEY_SIZE} #{PLOT}" )
+    system( "qsub brute_force_des_speedup.sh #{MAX_THREADS} #{KEY_SIZE} #{PLOT}" )
+  end
+
+  desc "Scaleup sh"
+  task :scaleup_sh do
+    MAX_THREADS = 8
+    KEY_SIZE = 20
+
+    1.upto( MAX_THREADS ) do |thread|
+      system( "./brute_force_des_scaleup.sh #{thread} #{KEY_SIZE} #{PLOT}" )
+    end
   end
 end
