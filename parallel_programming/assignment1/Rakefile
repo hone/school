@@ -121,10 +121,20 @@ namespace :brute_force_des do
   desc "Scaleup sh"
   task :scaleup_sh do
     MAX_THREADS = 8
-    KEY_SIZE = 20
+    KEY_SIZE = 28
 
     1.upto( MAX_THREADS ) do |thread|
       system( "./brute_force_des_scaleup.sh #{thread} #{KEY_SIZE} #{PLOT}" )
+    end
+  end
+
+  desc "Scaleup sh qsub"
+  task :qsub_scaleup_sh do
+    MAX_THREADS = 8
+    KEY_SIZE = 28
+
+    1.upto( MAX_THREADS ) do |thread|
+      system( "qsub brute_force_des_scaleup.sh #{thread} #{KEY_SIZE} #{PLOT}" )
     end
   end
 end
