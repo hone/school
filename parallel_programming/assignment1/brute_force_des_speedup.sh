@@ -20,7 +20,7 @@ do
 	for(( j=1; j<=$1; j++ ));
 	do
 		# iteration counts
-        for(( i=1; i<=20; i++ ));
+        for(( i=1; i<=100; i++ ));
 		do
 			java BruteForcedDES $j $k $i $3
 		done
