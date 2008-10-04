@@ -14,10 +14,10 @@
 
 #echo "#Iteration	Threads	ElapsedTime"
 # key size
-for(( k=20; k<=$2; k++ ));
+for(( k=10; k<=$2; k++ ));
 do
 	# iteration counts
-	for(( i=1; i<=20; i++ ));
+	for(( i=1; i<=100; i++ ));
 	do
 		java BruteForcedDES $1 $k $i $3
 	done

@@ -20,7 +20,7 @@ do
 	for(( j=1; j<=$1; j++ ));
 	do
 		# iteration counts
-        for(( i=1; i<=20; i++ ));
+        for(( i=1; i<=100; i++ ));
 		do
 			let ITERATIONS=10000000*k
 			java CoinFlip $j $ITERATIONS $i $3
