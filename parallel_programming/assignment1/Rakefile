@@ -60,7 +60,7 @@ namespace :coin_flip do
     MAX_THREADS = 8
 
     1.upto( MAX_THREADS ) do |thread|
-      system( "./coin_flip_scaleup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{PLOT} > thread#{thread}.dat" )
+      system( "./coin_flip_scaleup.sh #{thread} #{ITERATION_MAX_MULTIPLIER} #{PLOT} > thread#{thread}.dat" )
     end
   end
 
@@ -70,7 +70,7 @@ namespace :coin_flip do
     MAX_THREADS = 8
 
     1.upto( MAX_THREADS ) do |thread|
-      system( "qsub coin_flip_scaleup.sh #{MAX_THREADS} #{ITERATION_MAX_MULTIPLIER} #{PLOT}" )
+      system( "qsub coin_flip_scaleup.sh #{thread} #{ITERATION_MAX_MULTIPLIER} #{PLOT}" )
     end
   end
 end
