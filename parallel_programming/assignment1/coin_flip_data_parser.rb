@@ -1,42 +1,45 @@
 # Parses .dat files produced by CoinFlip.java
 class CoinFlipDataParser
-  MAX_REPEATS = 20
   AVERAGE = 0
 
   attr_reader :data
 
   # constructor that takes in a filename
   def initialize( filename )
-    @data = Array.new
-    @data.push Array.new # data[0] will hold the averages
+    @data = Hash.new
     parse( filename )
   end
 
   def parse( filename )
     # parse data files and get elapsed times
     File.open( filename ) do |file|
-      index = 0
       file.each_with_index do |line, i|
-        # starting a repetition
-        if i % MAX_REPEATS == 0
-          # if not first item (empty), calculate averages
-          if i != 0
-            average( index )
-          end
-          @data.push Array.new
-          index += 1
-        end
+        # parse line
+        elements = line.split
+        iteration = elements.shift.to_i
+        flip_number = elements.shift.to_i
+        thread = elements.shift.to_i
+        time = elements.shift.to_i
 
-        @data[index].push line.split.last.to_i
+        @data[flip_number] = Array.new if @data[flip_number].nil?
+        @data[flip_number][AVERAGE] = Array.new if @data[flip_number][AVERAGE].nil? # this will hold the averages
+        @data[flip_number][thread] = [0] if @data[flip_number][thread].nil? # this will hold the averages
+
+        @data[flip_number][thread][iteration] = time
       end
     end
 
-    average( @data.size - 1 )
+    @data.each do |flip_number, threads|
+      threads.each do |thread|
+        thread[AVERAGE] = average( thread ) unless thread.empty?
+      end
+    end
   end
 
-  def average( index )
-    sum = @data[index].inject( 0 ) { |sum, elapsed_time| sum + elapsed_time }
-    average = sum / MAX_REPEATS.to_f
-    @data[AVERAGE].push average
+  def average( iterations )
+    sum = iterations.inject( 0 ) {|sum, elapsed_time| sum + elapsed_time }
+    average = sum / iterations.size.to_f
+
+    average
   end
 end
