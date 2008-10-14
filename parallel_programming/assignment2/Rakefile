@@ -1,0 +1,24 @@
+require 'rake/clean'
+
+PROGRAM_NAME = "LineCount"
+SRC_FILES = ['LineCount.java']
+CLASSES_FOLDER = "linecount_classes/"
+JAR_FILE = "linecount.jar"
+INPUT = "test_input"
+OUTPUT = "output"
+
+desc "Build Application"
+task :build do
+  Dir.mkdir( CLASSES_FOLDER ) unless File.exist?( CLASSES_FOLDER )
+  system( "javac -classpath ${HADOOP_HOME}/hadoop-${HADOOP_VERSION}-core.jar -d #{CLASSES_FOLDER} #{SRC_FILES.join( ' ' )}" )
+end
+
+desc "Make jar file"
+task :make_jar do
+  system( "jar cvf #{JAR_FILE} -C #{CLASSES_FOLDER} ." )
+end
+
+desc "Run application"
+task :run do
+  system( "hadoop jar #{JAR_FILE} #{PROGRAM_NAME} #{INPUT} #{OUTPUT}" )
+end
