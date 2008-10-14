@@ -20,5 +20,11 @@ end
 
 desc "Run application"
 task :run do
+  system( "hadoop dfs -rmr #{OUTPUT}" )
   system( "hadoop jar #{JAR_FILE} #{PROGRAM_NAME} #{INPUT} #{OUTPUT}" )
+end
+
+desc "Cat output"
+task :output do
+  system( "hadoop dfs -cat #{OUTPUT}/part-00000" )
 end
