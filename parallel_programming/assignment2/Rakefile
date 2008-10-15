@@ -1,4 +1,5 @@
 require 'rake/clean'
+require 'line_count_parser'
 
 PROGRAM_NAME = "LineCount"
 SRC_FILES = ['LineCount.java']
@@ -27,4 +28,10 @@ end
 desc "Cat output"
 task :output do
   system( "hadoop dfs -cat #{OUTPUT}/part-00000" )
+end
+
+desc "Summarize output"
+task :summary do
+  data = `hadoop dfs -cat #{OUTPUT}/part-00000`
+  summary( data.split( "\n" ) )
 end
