@@ -5,7 +5,7 @@ PROGRAM_NAME = "LineCount"
 SRC_FILES = ['LineCount.java']
 CLASSES_FOLDER = "linecount_classes/"
 JAR_FILE = "linecount.jar"
-INPUT = "test_input"
+INPUT = "input/gutenberg"
 OUTPUT = "output"
 
 desc "Build Application"

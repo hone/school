@@ -29,7 +29,7 @@ public class LineCount {
 
 		public void map( LongWritable position, Text line, OutputCollector<Text, IntWritable> output, Reporter reporter ) throws IOException {
 			String line_string = line.toString();
-			int line_size = line_string.getBytes().length;
+			int line_size = line_string.length();
 			String line_hash = HashSHA1( line_string ) + " " + line_size;
 			this.text.set( line_hash );
 			output.collect( this.text, ONE );
