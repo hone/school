@@ -1,7 +1,6 @@
-#include <image_raii.hpp>
-#include <matrix_raii.hpp>
 #include <iostream>
-#include <cv.h>
+#include <canny.hpp>
+#include <matrix_raii.hpp>
 #include <highgui.h>
 
 const int GAUSSIAN_X = 5;
@@ -9,9 +8,22 @@ const int GAUSSIAN_Y = 5;
 const float SIGMA = 1.0;
 const int QUIT_KEY_CODE = 113;
 
-/**
- * Apply canny detection algorithm. This function handles the enhancement and calls the nonmaxsuppresion and hysteresis.
- */
+const float YELLOW_VALUE = 0;
+const float GREEN_VALUE = 45;
+const float BLUE_VALUE = 90;
+const float RED_VALUE = 135;
+
+const float YELLOW1_MIN = 0;
+const float YELLOW1_MAX = 22.5;
+const float GREEN_MIN = 22.5;
+const float GREEN_MAX = 67.5;
+const float BLUE_MIN = 67.5;
+const float BLUE_MAX = 112.5;
+const float RED_MIN = 112.5;
+const float RED_MAX = 157.5;
+const float YELLOW2_MIN = 157.5;
+const float YELLOW2_MAX = 180;
+
 ImageRAII canny( IplImage * image, CvMat * thresh, double sigma )
 {
 	const char * WINDOW_NAME = "Basic Canny Edge Detector";
@@ -44,23 +56,36 @@ ImageRAII canny( IplImage * image, CvMat * thresh, double sigma )
 	// gaussian smoothing
 	cvSmooth( grayscale.image, gaussian.image, CV_GAUSSIAN, GAUSSIAN_X, GAUSSIAN_Y, sigma );
 	// find edge strength
-	cvFilter2D( gaussian.image, gradient_x.image, sobel_x.matrix );
-	cvFilter2D( gaussian.image, gradient_y.image, sobel_y.matrix );
+	cvSobel( gaussian.image, gradient_x.image, 1, 0, 3 );
+	cvSobel( gaussian.image, gradient_y.image, 0, 1, 3 );
 	// find edge orientation
-	char * source_x_buffer = gradient_x.image->imageData;
-	char * source_y_buffer = gradient_y.image->imageData;
-	char * destination_buffer = destination.image->imageData;
-	char * orientation_buffer = orientation.image->imageData;
 	CvSize image_size = cvGetSize( gaussian.image );
 
 	for( int i = 0; i < image_size.width; i++ )
 	{
 		for( int j = 0; j < image_size.height; j++ )
 		{
-			char x = *( source_x_buffer + i * gradient_x.image->widthStep + gradient_x.image->nChannels * j );
-			char y = *( source_y_buffer + i * gradient_y.image->widthStep + gradient_y.image->nChannels * j );
-			*( destination_buffer + i * destination.image->widthStep + destination.image->nChannels * j ) = sqrt( pow( x, 2 ) + ( y, 2 ) );
-			*( orientation_buffer + i * orientation.image->widthStep + orientation.image->nChannels * j ) = cvFastArctan( y, x );
+			double x = cvGet2D( gradient_x.image, i, j ).val[0];
+			double y = cvGet2D( gradient_y.image, i, j ).val[0];
+			float angle;
+
+			if( x == 0 )
+			{
+				if( y == 0 )
+					angle = 0;
+				else
+					angle = 90;
+			}
+			else
+				angle = cvFastArctan( y, x );
+
+			CvScalar g;
+			CvScalar a;
+		   	g.val[0] = cvSqrt( pow( x, 2 ) + pow( y, 2 ) );
+			a.val[0] = find_angle( angle );
+
+			cvSet2D( destination.image, i, j, g );
+			cvSet2D( orientation.image, i, j, a );
 		}
 	}
 
@@ -74,6 +99,36 @@ ImageRAII canny( IplImage * image, CvMat * thresh, double sigma )
 	}
 
 	return destination;
+}
+
+float find_angle( float angle )
+{
+	float adjusted_angle = 0;
+
+	if( ( angle >= YELLOW1_MIN && angle < YELLOW1_MAX ) || ( angle >= YELLOW2_MIN && angle <= YELLOW2_MAX ) )
+	{
+		adjusted_angle = YELLOW_VALUE;
+	}
+	else if( angle >= GREEN_MIN && angle < GREEN_MAX )
+	{
+		adjusted_angle = GREEN_VALUE;
+	}
+	else if( angle >= BLUE_MIN && angle < BLUE_MAX )
+	{
+		adjusted_angle = BLUE_VALUE;
+	}
+	else if( angle >= RED_MIN && angle < RED_MAX )
+	{
+		adjusted_angle = RED_VALUE;
+	}
+	// shouldn't happen
+	else
+	{
+		std::cerr << "Angle must be in the range of 0 to 180 degrees.: " << angle << std::endl;
+		exit( -1 );
+	}
+
+	return adjusted_angle;
 }
 
 void nonMaxSup( IplImage * image )

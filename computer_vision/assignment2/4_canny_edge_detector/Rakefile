@@ -7,7 +7,7 @@ CLOBBER.include( NAME )
 OPENCV_UTILS = '../../opencv_utils'
 
 CC = 'gcc'
-CFLAGS = `pkg-config --cflags opencv`.chomp + "-I#{OPENCV_UTILS}"
+CFLAGS = `pkg-config --cflags opencv`.chomp + " -I#{OPENCV_UTILS}" + " -I."
 LFLAGS = `pkg-config --libs opencv`.chomp
 
 OBJECTS = ["#{NAME}.o", 'image_raii.o', 'matrix_raii.o']
@@ -23,7 +23,7 @@ file NAME => OBJECTS do
   sh "#{CC} -o #{NAME} #{OBJECTS.join( ' ' )} #{LFLAGS}"
 end
 
-file "#{NAME}.o" => ["#{NAME}.cpp", "#{OPENCV_UTILS}/image_raii.cpp"] do
+file "#{NAME}.o" => ["#{NAME}.cpp", "#{NAME}.hpp", "#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/matrix_raii.cpp"] do
   sh "#{CC} -c #{NAME}.cpp #{CFLAGS}"
 end
 
