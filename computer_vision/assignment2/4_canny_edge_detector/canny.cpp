@@ -6,7 +6,6 @@
 const int GAUSSIAN_X = 5;
 const int GAUSSIAN_Y = 5;
 const float SIGMA = 1.0;
-const int QUIT_KEY_CODE = 113;
 
 const float YELLOW_VALUE = 0;
 const float GREEN_VALUE = 45;
@@ -89,14 +88,11 @@ ImageRAII canny( IplImage * image, CvMat * thresh, double sigma )
 		}
 	}
 
+	ImageRAII suppressed_image = nonMaxSup( destination.image, orientation.image );
+
 	cvNamedWindow( WINDOW_NAME );
 	cvShowImage( WINDOW_NAME, destination.image );
-
-	int key_code = 0;
-	while( key_code != QUIT_KEY_CODE )
-	{
-		key_code = cvWaitKey( 0 );
-	}
+	cvMoveWindow( WINDOW_NAME, image_size.width, 0 );
 
 	return destination;
 }
@@ -131,8 +127,81 @@ float find_angle( float angle )
 	return adjusted_angle;
 }
 
-void nonMaxSup( IplImage * image )
+ImageRAII nonMaxSup( IplImage * strength, IplImage * orientation )
 {
+	const char * WINDOW_NAME = "Non-maximum Suppression";
+
+	CvSize image_size = cvGetSize( strength );
+	ImageRAII suppressed_image( cvCreateImage( image_size, strength->depth, strength->nChannels ) );
+
+	for( int i = 0; i < image_size.width; i++ )
+	{
+		for( int j = 0; j < image_size.height; j++ )
+		{
+			double s = cvGet2D( strength, i, j ).val[0];
+			double o = cvGet2D( orientation, i, j ).val[0];
+
+			CvScalar e;
+			CvPoint position1, position2;
+			if( o == YELLOW_VALUE )
+			{
+				position1 = cvPoint( i, j + 1 );
+				position2 = cvPoint( i, j - 1 );
+			}
+			else if( o == GREEN_VALUE )
+			{
+				position1 = cvPoint( i + 1, j - 1 );
+				position2 = cvPoint( i - 1, j + 1 );
+			}
+			else if( o == BLUE_VALUE )
+			{
+				position1 = cvPoint( i + 1, j );
+				position2 = cvPoint( i - 1, j );
+			}
+			else if( o == RED_VALUE )
+			{
+				position1 = cvPoint( i + 1, j + 1 );
+				position2 = cvPoint( i - 1, j - 1 );
+			}
+			// should not get here
+			else
+			{
+				std::cerr << "Should not have an orientation of this value. Hsould be tween 0 to 180.: " << o;
+				exit( -1 );
+			}
+
+			e = suppress( s, position1, position2, strength, image_size );
+			cvSet2D( suppressed_image.image, i, j, e );
+		}
+	}
+
+	cvNamedWindow( WINDOW_NAME );
+	cvShowImage( WINDOW_NAME, suppressed_image.image );
+	cvMoveWindow( WINDOW_NAME, image_size.width * 2, 0 );
+
+	return suppressed_image;
+}
+
+CvScalar suppress( double s, CvPoint position1, CvPoint position2, IplImage * strength, CvSize image_size )
+{
+	double value1, value2;
+	CvScalar e;
+
+	if( position1.x >= 0 && position1.x < image_size.width && position1.y >= 0 && position1.y < image_size.height )
+		value1 = cvGet2D( strength, position1.x, position1.y ).val[0];
+	if( position2.y >= 0 && position2.x >= image_size.width && position2.y >= 0 && position2.y < image_size.height )
+		value2 = cvGet2D( strength, position2.x, position2.y ).val[0];
+
+	if( s > value1 && s > value2 )
+	{
+		e.val[0] = s;
+	}
+	else
+	{
+		e.val[0] = 0;
+	}
+
+	return e;
 }
 
 void hysteresis( IplImage * image )
@@ -141,6 +210,8 @@ void hysteresis( IplImage * image )
 
 int main( int argc, char * argv[] )
 {
+	const char * WINDOW_NAME = "Original Image";
+
 	MatrixRAII thresh( cvCreateMat( 2, 1, CV_32FC1 ) );
 	cvmSet( thresh.matrix, 0, 0, 1 );
 	cvmSet( thresh.matrix, 1, 0, 255 );
@@ -152,7 +223,12 @@ int main( int argc, char * argv[] )
 	}
 	ImageRAII image( argv[1] );
 
+	cvNamedWindow( WINDOW_NAME );
+	cvShowImage( WINDOW_NAME, image.image );
+	cvMoveWindow( WINDOW_NAME, 0, 0 );
+
 	ImageRAII edge_detection_image = canny( image.image, thresh.matrix, SIGMA );
 
+	cvWaitKey( 0 );
 	return 0;
 }

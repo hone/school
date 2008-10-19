@@ -11,7 +11,15 @@ ImageRAII canny( IplImage * image, CvMat * thresh, double sigma );
  * Based on the angle given, return the correct edge direction.
  */
 float find_angle( float angle );
-void nonMaxSup( IplImage * image );
+/**
+ * Applies the Non-maximum suppression algorithm to the Canny Enhancer.
+ */
+ImageRAII nonMaxSup( IplImage * strength, IplImage * orientation );
+/**
+ * Decides where to suppress the point based on the neighboring points.
+ */
+CvScalar suppress( double s, CvPoint position1, CvPoint position2, IplImage * strength, CvSize image_size );
 void hysteresis( IplImage * image );
+
 
 #endif
