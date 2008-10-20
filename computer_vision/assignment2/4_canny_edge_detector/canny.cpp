@@ -1,8 +1,12 @@
 #include <iostream>
+#include <map>
+#include <vector>
 #include <canny.hpp>
 #include <matrix_raii.hpp>
 #include <highgui.h>
 
+const int THRESH_MIN = 1;
+const int THRESH_MAX = 80;
 const int GAUSSIAN_X = 5;
 const int GAUSSIAN_Y = 5;
 const float SIGMA = 1.0;
@@ -23,7 +27,7 @@ const float RED_MAX = 157.5;
 const float YELLOW2_MIN = 157.5;
 const float YELLOW2_MAX = 180;
 
-ImageRAII canny( IplImage * image, CvMat * thresh, double sigma )
+ImageRAII canny( IplImage * image, std::pair< int, int > thresh, double sigma )
 {
 	const char * WINDOW_NAME = "Basic Canny Edge Detector";
 
@@ -89,12 +93,13 @@ ImageRAII canny( IplImage * image, CvMat * thresh, double sigma )
 	}
 
 	ImageRAII suppressed_image = nonMaxSup( destination.image, orientation.image );
+	ImageRAII hysteresis_image = hysteresis( suppressed_image.image, orientation.image, thresh );
 
 	cvNamedWindow( WINDOW_NAME );
 	cvShowImage( WINDOW_NAME, destination.image );
 	cvMoveWindow( WINDOW_NAME, image_size.width, 0 );
 
-	return destination;
+	return hysteresis_image;
 }
 
 float find_angle( float angle )
@@ -139,38 +144,9 @@ ImageRAII nonMaxSup( IplImage * strength, IplImage * orientation )
 		for( int j = 0; j < image_size.height; j++ )
 		{
 			double s = cvGet2D( strength, i, j ).val[0];
-			double o = cvGet2D( orientation, i, j ).val[0];
 
-			CvScalar e;
-			CvPoint position1, position2;
-			if( o == YELLOW_VALUE )
-			{
-				position1 = cvPoint( i, j + 1 );
-				position2 = cvPoint( i, j - 1 );
-			}
-			else if( o == GREEN_VALUE )
-			{
-				position1 = cvPoint( i + 1, j - 1 );
-				position2 = cvPoint( i - 1, j + 1 );
-			}
-			else if( o == BLUE_VALUE )
-			{
-				position1 = cvPoint( i + 1, j );
-				position2 = cvPoint( i - 1, j );
-			}
-			else if( o == RED_VALUE )
-			{
-				position1 = cvPoint( i + 1, j + 1 );
-				position2 = cvPoint( i - 1, j - 1 );
-			}
-			// should not get here
-			else
-			{
-				std::cerr << "Should not have an orientation of this value. Hsould be tween 0 to 180.: " << o;
-				exit( -1 );
-			}
-
-			e = suppress( s, position1, position2, strength, image_size );
+			std::pair< CvPoint, CvPoint > positions = get_normal_positions( orientation, i, j );
+			CvScalar e = suppress( s, positions, strength );
 			cvSet2D( suppressed_image.image, i, j, e );
 		}
 	}
@@ -182,17 +158,52 @@ ImageRAII nonMaxSup( IplImage * strength, IplImage * orientation )
 	return suppressed_image;
 }
 
-CvScalar suppress( double s, CvPoint position1, CvPoint position2, IplImage * strength, CvSize image_size )
+std::pair< CvPoint, CvPoint > get_normal_positions( IplImage * orientation, int x, int y )
 {
-	double value1, value2;
+	double o = cvGet2D( orientation, x, y ).val[0];
+	std::pair< CvPoint, CvPoint > positions;
+
+	if( o == YELLOW_VALUE )
+	{
+		positions.first = cvPoint( x, y + 1 );
+		positions.second = cvPoint( x, y - 1 );
+	}
+	else if( o == GREEN_VALUE )
+	{
+		positions.first = cvPoint( x + 1, y - 1 );
+		positions.second = cvPoint( x - 1, y + 1 );
+	}
+	else if( o == BLUE_VALUE )
+	{
+		positions.first = cvPoint( x + 1, y );
+		positions.second = cvPoint( x - 1, y );
+	}
+	else if( o == RED_VALUE )
+	{
+		positions.first = cvPoint( x + 1, y + 1 );
+		positions.second = cvPoint( x - 1, y - 1 );
+	}
+	// should not get here
+	else
+	{
+		std::cerr << "Should not have an orientation of this value. Hsould be tween 0 to 180.: " << o;
+		exit( -1 );
+	}
+
+	return positions;
+}
+
+CvScalar suppress( double s, std::pair< CvPoint, CvPoint > positions, IplImage * strength )
+{
+	std::pair< double, double > values;
 	CvScalar e;
 
-	if( position1.x >= 0 && position1.x < image_size.width && position1.y >= 0 && position1.y < image_size.height )
-		value1 = cvGet2D( strength, position1.x, position1.y ).val[0];
-	if( position2.y >= 0 && position2.x >= image_size.width && position2.y >= 0 && position2.y < image_size.height )
-		value2 = cvGet2D( strength, position2.x, position2.y ).val[0];
+	if( check_boundaries( strength, positions.first ) )
+		values.first = cvGet2D( strength, positions.first.x, positions.first.y ).val[0];
+	if( check_boundaries( strength, positions.second ) )
+		values.second = cvGet2D( strength, positions.second.x, positions.second.y ).val[0];
 
-	if( s > value1 && s > value2 )
+	if( s > values.first && s > values.second )
 	{
 		e.val[0] = s;
 	}
@@ -204,17 +215,164 @@ CvScalar suppress( double s, CvPoint position1, CvPoint position2, IplImage * st
 	return e;
 }
 
-void hysteresis( IplImage * image )
+struct classcomp
 {
+	bool operator()( const CvPoint& lhs, const CvPoint& rhs ) const
+	{
+		if( lhs.x < rhs.x )
+			return true;
+		else if( lhs.x == rhs.x && lhs.y < rhs.y )
+			return true;
+		else
+			return false;
+	}
+};
+
+ImageRAII hysteresis( IplImage * image, IplImage * orientation, std::pair< int, int > thresh )
+{
+	const char * WINDOW_NAME = "Hysteresis Threshold";
+
+	CvSize image_size = cvGetSize( image );
+	ImageRAII hysteresis_image( cvCreateImage( image_size, image->depth, image->nChannels ) );
+	// key: pixel position
+	// value: visited = true, unvisited = false
+	std::map< CvPoint, bool, classcomp > pixels;
+	std::map< CvPoint, bool, classcomp >::iterator it;
+	std::vector< std::vector< CvPoint > > edges;
+
+	// initialize map
+	for( int i = 0; i < image_size.width; i++ )
+	{
+		for( int j = 0; j < image_size.height; j++ )
+		{
+			pixels[cvPoint( i, j )] = false;
+		}
+	}
+
+	// visit all pixels
+	for( it = pixels.begin(); it != pixels.end(); it++ )
+	{
+		std::vector< CvPoint > edge;
+		// find next unvisited edge pixel
+		bool run = true;
+		while( run  )
+		{
+			if( it->second == false && check_boundaries( image, it->first ) && cvGet2D( image, it->first.x, it->first.y ).val[0] > thresh.second  )
+				run = false;
+			if( it == pixels.end() )
+				run = false;
+			it++;
+		}
+
+		// mark pixel as visited
+		CvPoint current_pixel = it->first;
+		it->second = true;
+		edge.push_back( current_pixel );
+
+		// follow links forward
+		std::pair< CvPoint, CvPoint > positions = get_edge_positions( orientation, current_pixel.x, current_pixel.y );
+
+		// go forward
+		CvPoint forward = positions.first;
+		while( check_boundaries( image, forward ) && cvGet2D( image, forward.x, forward.y ).val[0] > thresh.first )
+		{
+			// mark pixel as visited
+			edge.push_back( forward );
+			pixels.find( forward )->second = true;
+			
+			std::pair< CvPoint, CvPoint > forward_positions = get_edge_positions( orientation, forward.x, forward.y );
+			forward = forward_positions.first;
+		}
+
+		// go backward
+		CvPoint backward = positions.second;
+		while( check_boundaries( image, backward ) && cvGet2D( image, backward.x, backward.y ).val[0] > thresh.first )
+		{
+			// mark pixel as visited
+			edge.push_back( backward );
+			pixels.find( backward )->second = true;
+
+			std::pair< CvPoint, CvPoint > backward_positions = get_edge_positions( orientation, backward.x, backward.y );
+			backward = backward_positions.second;
+		}
+
+		// store this edge
+		edges.push_back( edge );
+	}
+
+	int size = 0;
+	// set the edges in the image
+	std::vector< std::vector< CvPoint > >::iterator edges_iterator;
+	for( edges_iterator = edges.begin(); edges_iterator < edges.end(); edges_iterator++ )
+	{
+		std::vector< CvPoint >::iterator edge_iterator;
+		std::vector< CvPoint > edge = *edges_iterator;
+		for( edge_iterator = edge.begin(); edge_iterator < edge.end(); edge_iterator++ )
+		{
+			size++;
+			CvPoint pixel = *edge_iterator;
+			CvScalar e;
+			e.val[0] = 100;
+			cvSet2D( hysteresis_image.image, pixel.x, pixel.y, e );
+			//cvSet2D( hysteresis_image.image, pixel.x, pixel.y, cvGet2D( image, pixel.x, pixel.y ) );
+		}
+	}
+
+	cvNamedWindow( WINDOW_NAME );
+	cvShowImage( WINDOW_NAME, hysteresis_image.image );
+	cvMoveWindow( WINDOW_NAME, image_size.width * 3, 0 );
+
+	return hysteresis_image;
+}
+
+bool check_boundaries( IplImage * image, CvPoint position )
+{
+	CvSize image_size = cvGetSize( image );
+	return(  position.x >= 0 && position.x < image_size.width && position.y >= 0 && position.y < image_size.height );
+}
+
+std::pair< CvPoint, CvPoint > get_edge_positions( IplImage * orientation, int x, int y )
+{
+	double o = cvGet2D( orientation, x, y ).val[0];
+	std::pair< CvPoint, CvPoint > positions;
+
+	if( o == YELLOW_VALUE )
+	{
+		positions.first = cvPoint( x + 1, y );
+		positions.second = cvPoint( x - 1, y );
+	}
+	else if( o == GREEN_VALUE )
+	{
+		positions.first = cvPoint( x + 1, y + 1 );
+		positions.second = cvPoint( x - 1, y - 1 );
+	}
+	else if( o == BLUE_VALUE )
+	{
+		positions.first = cvPoint( x, y + 1 );
+		positions.second = cvPoint( x, y - 1 );
+	}
+	else if( o == RED_VALUE )
+	{
+		positions.first = cvPoint( x + 1, y - 1 );
+		positions.second = cvPoint( x - 1, y + 1 );
+	}
+	// should not get here
+	else
+	{
+		std::cerr << "Should not have an orientation of this value. Hsould be tween 0 to 180.: " << o << std::endl;
+		exit( -1 );
+	}
+
+	return positions;
 }
 
 int main( int argc, char * argv[] )
 {
 	const char * WINDOW_NAME = "Original Image";
 
-	MatrixRAII thresh( cvCreateMat( 2, 1, CV_32FC1 ) );
-	cvmSet( thresh.matrix, 0, 0, 1 );
-	cvmSet( thresh.matrix, 1, 0, 255 );
+	// x is low
+	// y is high
+	std::pair< int, int > thresh = std::make_pair( THRESH_MIN, THRESH_MAX);
 
 	if( argc < 2 )
 	{
@@ -227,7 +385,7 @@ int main( int argc, char * argv[] )
 	cvShowImage( WINDOW_NAME, image.image );
 	cvMoveWindow( WINDOW_NAME, 0, 0 );
 
-	ImageRAII edge_detection_image = canny( image.image, thresh.matrix, SIGMA );
+	ImageRAII edge_detection_image = canny( image.image, thresh, SIGMA );
 
 	cvWaitKey( 0 );
 	return 0;
