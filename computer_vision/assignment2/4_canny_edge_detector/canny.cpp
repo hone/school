@@ -5,8 +5,9 @@
 #include <matrix_raii.hpp>
 #include <highgui.h>
 
+const int GRAY = 100;
 const int THRESH_MIN = 1;
-const int THRESH_MAX = 80;
+const int THRESH_MAX = 30;
 const int GAUSSIAN_X = 5;
 const int GAUSSIAN_Y = 5;
 const float SIGMA = 1.0;
@@ -312,9 +313,8 @@ ImageRAII hysteresis( IplImage * image, IplImage * orientation, std::pair< int, 
 			size++;
 			CvPoint pixel = *edge_iterator;
 			CvScalar e;
-			e.val[0] = 100;
+			e.val[0] = GRAY;
 			cvSet2D( hysteresis_image.image, pixel.x, pixel.y, e );
-			//cvSet2D( hysteresis_image.image, pixel.x, pixel.y, cvGet2D( image, pixel.x, pixel.y ) );
 		}
 	}
 
