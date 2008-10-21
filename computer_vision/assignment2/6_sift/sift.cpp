@@ -1,6 +1,7 @@
 #include <limits.h>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <sift.hpp>
 #include <highgui.h>
 
@@ -8,7 +9,7 @@ const int NUM_OF_ARGS = 4;
 const int KEY_VECTORS_WIDTH = 4;
 const int KEY_DESCRIPTORS_WIDTH = 128;
 const int DESCRIPTORS_PER_LINE = 20;
-const float THRESHOLD = 0.1;
+const float THRESHOLD = 0.15;
 
 ImageRAII appendimages( IplImage * image1, IplImage * image2 )
 {
@@ -120,62 +121,57 @@ ImageRAII match( IplImage * image1, IplImage * image2, std::pair< CvMat *, CvMat
 	cvCvtColor( appended_images.image, rgb_appended_images.image, CV_GRAY2RGB );
 	CvScalar red;
 	red.val[2] = 255;
+	std::vector< std::pair< int, int > > points;
 
 	// check for matches with the vectors in image1 and image2
 	for( int i = 0; i < image1_keys.first->height; i++ )
 	{
+		double magnitude1 = 0;
 		MatrixRAII current_vector( cvCreateMat( 1, image1_keys.first->cols, CV_32FC1 ) );
 		// keeps track of minimum row found b/t image1 and image2 vectors
 		MatrixRAII min( cvCreateMat( 1, image2_keys.first->cols, CV_32FC1 ) );
-		bool draw = false;
 		cvGetRow( image1_keys.first, current_vector.matrix, i );
 		CvPoint point1 = cvPoint( ( int )cvmGet( current_vector.matrix, 0, 1 ), ( int )cvmGet( current_vector.matrix, 0, 0 ) );
+		std::map< float, int > angles;
 
-		double difference, distance_squared = 0;
-		double distance_squared1 = INT_MAX;
-		double distance_squared2 = INT_MAX;
+		for( int k = 0; k < image1_keys.second->width; k++ )
+			magnitude1 += pow( cvmGet( image1_keys.second, i, k ), 2 );
+		magnitude1 = cvSqrt( magnitude1 );
+
 		// compare a vector in image1 to every vector in image2
-		for( int j = 0; j < image2_keys.first->cols; j++ )
+		for( int j = 0; j < image2_keys.first->height; j++ )
 		{
+			MatrixRAII descriptor1( cvCreateMat( 1, image1_keys.second->cols, CV_32FC1 ) );
+			MatrixRAII descriptor2( cvCreateMat( 1, image2_keys.second->cols, CV_32FC1 ) );
 
-			// calculate the squared distance between the keypoint discriptors
-			for( int k = 0; k < image1_keys.second->width; k++ )
-			{
-				double descriptor1 = cvmGet( image1_keys.second, i, k );
-				double descriptor2 = cvmGet( image2_keys.second, j, k );
-				difference = descriptor1 - descriptor2;
-				distance_squared += pow( difference, 2 );
-			}
+			cvGetRow( image1_keys.second, descriptor1.matrix, i );
+			cvGetRow( image2_keys.second, descriptor2.matrix, j );
 
-			// find the closest euclidean squared distance (takes care of negatives) of the two smallest distances
-			if( distance_squared < distance_squared1 )
-			{
-				distance_squared2 = distance_squared1;
-				distance_squared1 = distance_squared;
-			}
-			else if( distance_squared < distance_squared2 )
-			{
-				distance_squared2 = distance_squared;
-			}
+			double dot_product = cvDotProduct( descriptor1.matrix, descriptor2.matrix );
+			double magnitude2 = 0;
+			for( int k = 0; k < image2_keys.second->width; k++ )
+				magnitude2 += pow( cvmGet( descriptor1.matrix, 0, k ), 2 );
+			magnitude2 = cvSqrt( magnitude2 );
 
-			// only keep the distance if it's smaller than a threshold of the 2nd smallest distance
-			if( distance_squared1 < THRESHOLD *  distance_squared2 )
-			{
-				cvGetRow( image2_keys.first, min.matrix, i );
-				draw = true;
-			}
-			else
-			{
-				draw = false;
-			}
+			angles.insert( std::pair< float, int >( acos( dot_product / ( magnitude1 * magnitude2 ) ), j ) );
 		}
 
-		// found a minimum within the desired distance, draw the line
-		if( draw )
+		std::map< float, int >::iterator it =  angles.begin();
+		int index = it->second;
+		float angle = it->first;
+		it++;
+		if( angle < THRESHOLD * it->first )
 		{
-			CvPoint point2 = cvPoint( ( int )cvmGet( min.matrix, 0, 1 ) + image1->width, ( int )cvmGet( min.matrix, 0, 0 ) );
-			cvLine( rgb_appended_images.image, point1, point2, red );
+			points.push_back( std::make_pair( i, index ) );
 		}
+	}
+
+	std::vector< std::pair< int, int > >::iterator it;
+	for( it = points.begin(); it < points.end(); it++ )
+	{
+		CvPoint point1 = cvPoint( ( int )cvmGet( image1_keys.first,  it->first, 1 ), ( int )cvmGet( image1_keys.first, it->first, 0 ) );
+		CvPoint point2 = cvPoint( ( int )cvmGet( image2_keys.first,  it->second, 1 ) + image1->width, ( int )cvmGet( image2_keys.first, it->second, 0 ) );
+		cvLine( rgb_appended_images.image, point1, point2, red );
 	}
 
 	return rgb_appended_images;
