@@ -20,6 +20,10 @@ std::pair< CvMat *, CvMat * > readkeys( const char * filename );
  * String tokenizer taken from http://www.rosettacode.org/wiki/Tokenizing_A_String#C.2B.2B
  */
 std::vector<std::string> tokenize_str( const std::string & str, const std::string & delims );
+/**
+ * Finds and maps the SIFT features of two images.
+ */
+ImageRAII match( IplImage * image1, IplImage * image2, std::pair< CvMat *, CvMat * > image1_keys, std::pair< CvMat *, CvMat * > image2_keys );
 
 /**
  * Typecasts from source to destination.

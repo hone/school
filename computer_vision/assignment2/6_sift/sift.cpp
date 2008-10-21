@@ -1,4 +1,4 @@
-#include <sstream>
+#include <limits.h>
 #include <fstream>
 #include <iostream>
 #include <sift.hpp>
@@ -8,6 +8,7 @@ const int NUM_OF_ARGS = 4;
 const int KEY_VECTORS_WIDTH = 4;
 const int KEY_DESCRIPTORS_WIDTH = 128;
 const int DESCRIPTORS_PER_LINE = 20;
+const float THRESHOLD = 0.1;
 
 ImageRAII appendimages( IplImage * image1, IplImage * image2 )
 {
@@ -112,6 +113,73 @@ std::vector< std::string > tokenize_str( const std::string & str, const std::str
 	return tokens;
 }
 
+ImageRAII match( IplImage * image1, IplImage * image2, std::pair< CvMat *, CvMat * > image1_keys, std::pair< CvMat *, CvMat * > image2_keys )
+{
+	ImageRAII appended_images = appendimages( image1, image2 );
+	ImageRAII rgb_appended_images( cvCreateImage( cvGetSize( appended_images.image ), appended_images.image->depth, 3 ) );
+	cvCvtColor( appended_images.image, rgb_appended_images.image, CV_GRAY2RGB );
+	CvScalar red;
+	red.val[2] = 255;
+
+	// check for matches with the vectors in image1 and image2
+	for( int i = 0; i < image1_keys.first->height; i++ )
+	{
+		MatrixRAII current_vector( cvCreateMat( 1, image1_keys.first->cols, CV_32FC1 ) );
+		// keeps track of minimum row found b/t image1 and image2 vectors
+		MatrixRAII min( cvCreateMat( 1, image2_keys.first->cols, CV_32FC1 ) );
+		bool draw = false;
+		cvGetRow( image1_keys.first, current_vector.matrix, i );
+		CvPoint point1 = cvPoint( ( int )cvmGet( current_vector.matrix, 0, 1 ), ( int )cvmGet( current_vector.matrix, 0, 0 ) );
+
+		double difference, distance_squared = 0;
+		double distance_squared1 = INT_MAX;
+		double distance_squared2 = INT_MAX;
+		// compare a vector in image1 to every vector in image2
+		for( int j = 0; j < image2_keys.first->cols; j++ )
+		{
+
+			// calculate the squared distance between the keypoint discriptors
+			for( int k = 0; k < image1_keys.second->width; k++ )
+			{
+				double descriptor1 = cvmGet( image1_keys.second, i, k );
+				double descriptor2 = cvmGet( image2_keys.second, j, k );
+				difference = descriptor1 - descriptor2;
+				distance_squared += pow( difference, 2 );
+			}
+
+			// find the closest euclidean squared distance (takes care of negatives) of the two smallest distances
+			if( distance_squared < distance_squared1 )
+			{
+				distance_squared2 = distance_squared1;
+				distance_squared1 = distance_squared;
+			}
+			else if( distance_squared < distance_squared2 )
+			{
+				distance_squared2 = distance_squared;
+			}
+
+			// only keep the distance if it's smaller than a threshold of the 2nd smallest distance
+			if( distance_squared1 < THRESHOLD *  distance_squared2 )
+			{
+				cvGetRow( image2_keys.first, min.matrix, i );
+				draw = true;
+			}
+			else
+			{
+				draw = false;
+			}
+		}
+
+		// found a minimum within the desired distance, draw the line
+		if( draw )
+		{
+			CvPoint point2 = cvPoint( ( int )cvmGet( min.matrix, 0, 1 ) + image1->width, ( int )cvmGet( min.matrix, 0, 0 ) );
+			cvLine( rgb_appended_images.image, point1, point2, red );
+		}
+	}
+
+	return rgb_appended_images;
+}
 
 int main( int argc, char * argv[] )
 {
@@ -125,18 +193,19 @@ int main( int argc, char * argv[] )
 
 	ImageRAII image1( argv[1] );
 	ImageRAII image2( argv[3] );
-	std::pair< CvMat *, CvMat * > tmp;
+	std::pair< CvMat *, CvMat * > tmp1;
+	std::pair< CvMat *, CvMat * > tmp2;
 	std::pair< MatrixRAII, MatrixRAII > image1_keys;
 	std::pair< MatrixRAII, MatrixRAII > image2_keys;
 
-	tmp = readkeys( argv[2] );
-	image1_keys.first.matrix = tmp.first;
-	image1_keys.second.matrix = tmp.second;
-	tmp = readkeys( argv[4] );
-	image2_keys.first.matrix = tmp.first;
-	image2_keys.second.matrix = tmp.second;
+	tmp1 = readkeys( argv[2] );
+	image1_keys.first.matrix = tmp1.first;
+	image1_keys.second.matrix = tmp1.second;
+	tmp2 = readkeys( argv[4] );
+	image2_keys.first.matrix = tmp2.first;
+	image2_keys.second.matrix = tmp2.second;
 
-	ImageRAII appended_images = appendimages( image1.image, image2.image );
+	ImageRAII appended_images = match( image1.image, image2.image, tmp1, tmp2 );
 
 	cvNamedWindow( WINDOW_NAME );
 	cvShowImage( WINDOW_NAME, appended_images.image );
