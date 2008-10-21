@@ -39,20 +39,6 @@ ImageRAII canny( IplImage * image, std::pair< int, int > thresh, double sigma )
 	ImageRAII gradient_y( cvCreateImage( cvGetSize( image ), image->depth, grayscale.image->nChannels ) );
 	ImageRAII gradient( cvCreateImage( cvGetSize( image ), image->depth, grayscale.image->nChannels ) );
 	ImageRAII orientation( cvCreateImage( cvGetSize( image ), image->depth, grayscale.image->nChannels ) );
-	MatrixRAII sobel_x( cvCreateMat( 3, 3, CV_64FC1 ) );
-	MatrixRAII sobel_y( cvCreateMat( 3, 3, CV_64FC1 ) );
-	double sobel_x_data[3][3] = { -1, 0, 1, -2, 0, 2, -1, 0, 1 };
-	double sobel_y_data[3][3] = { 1, 2, 1, 0, 0, 0, -1, -2, 1 };
-
-	// setup sobel operator
-	for( int i = 0; i < 3; i++ )
-	{
-		for( int j = 0; j < 3; j++ )
-		{
-			cvmSet( sobel_x.matrix, i, j, sobel_x_data[i][j] );
-			cvmSet( sobel_y.matrix, i, j, sobel_y_data[i][j] );
-		}
-	}
 
 	// convert image to grayscale
 	cvCvtColor( image, grayscale.image, CV_BGR2GRAY );
