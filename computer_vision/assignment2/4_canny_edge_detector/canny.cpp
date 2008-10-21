@@ -55,8 +55,8 @@ ImageRAII canny( IplImage * image, std::pair< int, int > thresh, double sigma )
 	{
 		for( int j = 0; j < image_size.height; j++ )
 		{
-			double x = cvGet2D( gradient_x.image, i, j ).val[0];
-			double y = cvGet2D( gradient_y.image, i, j ).val[0];
+			double x = cvGet2D( gradient_x.image, j, i ).val[0];
+			double y = cvGet2D( gradient_y.image, j, i ).val[0];
 			float angle;
 
 			if( x == 0 )
@@ -74,8 +74,8 @@ ImageRAII canny( IplImage * image, std::pair< int, int > thresh, double sigma )
 		   	g.val[0] = cvSqrt( pow( x, 2 ) + pow( y, 2 ) );
 			a.val[0] = find_angle( angle );
 
-			cvSet2D( destination.image, i, j, g );
-			cvSet2D( orientation.image, i, j, a );
+			cvSet2D( destination.image, j, i, g );
+			cvSet2D( orientation.image, j, i, a );
 		}
 	}
 
@@ -130,11 +130,11 @@ ImageRAII nonMaxSup( IplImage * strength, IplImage * orientation )
 	{
 		for( int j = 0; j < image_size.height; j++ )
 		{
-			double s = cvGet2D( strength, i, j ).val[0];
+			double s = cvGet2D( strength, j, i ).val[0];
 
 			std::pair< CvPoint, CvPoint > positions = get_normal_positions( orientation, i, j );
 			CvScalar e = suppress( s, positions, strength );
-			cvSet2D( suppressed_image.image, i, j, e );
+			cvSet2D( suppressed_image.image, j, i, e );
 		}
 	}
 
@@ -147,7 +147,7 @@ ImageRAII nonMaxSup( IplImage * strength, IplImage * orientation )
 
 std::pair< CvPoint, CvPoint > get_normal_positions( IplImage * orientation, int x, int y )
 {
-	double o = cvGet2D( orientation, x, y ).val[0];
+	double o = cvGet2D( orientation, y, x ).val[0];
 	std::pair< CvPoint, CvPoint > positions;
 
 	if( o == YELLOW_VALUE )
@@ -186,9 +186,9 @@ CvScalar suppress( double s, std::pair< CvPoint, CvPoint > positions, IplImage *
 	CvScalar e;
 
 	if( check_boundaries( strength, positions.first ) )
-		values.first = cvGet2D( strength, positions.first.x, positions.first.y ).val[0];
+		values.first = cvGet2D( strength, positions.first.y, positions.first.x ).val[0];
 	if( check_boundaries( strength, positions.second ) )
-		values.second = cvGet2D( strength, positions.second.x, positions.second.y ).val[0];
+		values.second = cvGet2D( strength, positions.second.y, positions.second.x ).val[0];
 
 	if( s > values.first && s > values.second )
 	{
@@ -244,7 +244,7 @@ ImageRAII hysteresis( IplImage * image, IplImage * orientation, std::pair< int, 
 		bool run = true;
 		while( run  )
 		{
-			if( it->second == false && check_boundaries( image, it->first ) && cvGet2D( image, it->first.x, it->first.y ).val[0] > thresh.second  )
+			if( it->second == false && check_boundaries( image, it->first ) && cvGet2D( image, it->first.y, it->first.x ).val[0] > thresh.second  )
 				run = false;
 			if( it == pixels.end() )
 				run = false;
@@ -261,7 +261,7 @@ ImageRAII hysteresis( IplImage * image, IplImage * orientation, std::pair< int, 
 
 		// go forward
 		CvPoint forward = positions.first;
-		while( check_boundaries( image, forward ) && cvGet2D( image, forward.x, forward.y ).val[0] > thresh.first )
+		while( check_boundaries( image, forward ) && cvGet2D( image, forward.y, forward.x ).val[0] > thresh.first )
 		{
 			// mark pixel as visited
 			edge.push_back( forward );
@@ -273,7 +273,7 @@ ImageRAII hysteresis( IplImage * image, IplImage * orientation, std::pair< int, 
 
 		// go backward
 		CvPoint backward = positions.second;
-		while( check_boundaries( image, backward ) && cvGet2D( image, backward.x, backward.y ).val[0] > thresh.first )
+		while( check_boundaries( image, backward ) && cvGet2D( image, backward.y, backward.x ).val[0] > thresh.first )
 		{
 			// mark pixel as visited
 			edge.push_back( backward );
@@ -300,7 +300,7 @@ ImageRAII hysteresis( IplImage * image, IplImage * orientation, std::pair< int, 
 			CvPoint pixel = *edge_iterator;
 			CvScalar e;
 			e.val[0] = GRAY;
-			cvSet2D( hysteresis_image.image, pixel.x, pixel.y, e );
+			cvSet2D( hysteresis_image.image, pixel.y, pixel.x, e );
 		}
 	}
 
@@ -319,7 +319,7 @@ bool check_boundaries( IplImage * image, CvPoint position )
 
 std::pair< CvPoint, CvPoint > get_edge_positions( IplImage * orientation, int x, int y )
 {
-	double o = cvGet2D( orientation, x, y ).val[0];
+	double o = cvGet2D( orientation, y, x ).val[0];
 	std::pair< CvPoint, CvPoint > positions;
 
 	if( o == YELLOW_VALUE )
