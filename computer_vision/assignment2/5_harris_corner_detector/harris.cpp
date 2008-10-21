@@ -69,6 +69,21 @@ ImageRAII detectCorner( IplImage * image, int win, float sigma )
 	return final_image;
 }
 
+ImageRAII makePyramid( IplImage * image, float sigma )
+{
+	CvSize image_size = cvGetSize( image );
+	CvSize scaled_down_size;
+	scaled_down_size.width = image_size.width / 2;
+	scaled_down_size.height = image_size.height / 2;
+	ImageRAII smoothed( cvCreateImage( image_size, image->depth, image->nChannels ) );
+	ImageRAII scaled_down( cvCreateImage( scaled_down_size, image->depth, image->nChannels ) );
+
+	cvSmooth( image, smoothed.image, CV_GAUSSIAN, GAUSSIAN_X, GAUSSIAN_Y, sigma );
+	cvResize( smoothed.image, scaled_down.image );
+
+	return scaled_down;
+}
+
 int main( int argc, char * argv[] )
 {
 	const char * WINDOW_NAME = "Harris Corner Detection";
