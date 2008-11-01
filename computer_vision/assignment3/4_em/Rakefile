@@ -1,0 +1,36 @@
+require 'rake/clean' 
+NAME = 'em'
+
+CLEAN.include( '*.gch', '*.o' )
+CLOBBER.include( NAME )
+
+OPENCV_UTILS = '../../opencv_utils'
+
+CC = 'gcc'
+CFLAGS = `pkg-config --cflags opencv`.chomp + " -I#{OPENCV_UTILS}" + " -I."
+LFLAGS = `pkg-config --libs opencv`.chomp
+
+OBJECTS = ["#{NAME}.o", 'image_raii.o', 'matrix_raii.o']
+
+desc "run program"
+task :run do
+  system( "./#{NAME} red_green.png 2 1" )
+end
+
+task :default => [NAME]
+
+file NAME => OBJECTS do
+  sh "#{CC} -o #{NAME} #{OBJECTS.join( ' ' )} #{LFLAGS}"
+end
+
+file "#{NAME}.o" => ["#{NAME}.cpp", "#{NAME}.hpp", "#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/matrix_raii.cpp"] do
+  sh "#{CC} -c #{NAME}.cpp #{CFLAGS}"
+end
+
+file "image_raii.o" => ["#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/image_raii.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/image_raii.cpp #{CFLAGS}"
+end
+
+file "matrix_raii.o" => ["#{OPENCV_UTILS}/matrix_raii.cpp", "#{OPENCV_UTILS}/matrix_raii.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/matrix_raii.cpp #{CFLAGS}"
+end
