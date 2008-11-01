@@ -12,7 +12,7 @@ MatrixRAII convert_data( IplImage * image )
 {
 	CvSize image_size = cvGetSize( image );
 	int max_cols = image_size.width * image_size.height;
-	MatrixRAII data( cvCreateMat( 2, max_cols * 2, CV_32FC1 ) );
+	MatrixRAII data( cvCreateMat( 2, max_cols, CV_32FC1 ) );
 
 	for( int x = 0; x < image->width; x++ )
 	{
@@ -21,7 +21,7 @@ MatrixRAII convert_data( IplImage * image )
 			// green
 			cvmSet( data.matrix, 0, y + x, cvGet2D( image, y, x ).val[1] / 255.0 );
 			// red
-			cvmSet( data.matrix, 1, y + x + max_cols, cvGet2D( image, y, x ).val[2] / 255.0 );
+			cvmSet( data.matrix, 1, y + x, cvGet2D( image, y, x ).val[2] / 255.0 );
 		}
 	}
 
