@@ -9,9 +9,13 @@ CC = 'gcc'
 CFLAGS = `pkg-config --cflags opencv`.chomp + "-I#{OPENCV_UTILS}"
 LFLAGS = `pkg-config --libs opencv`.chomp
 
-OBJECTS = ['face_detection.o', 'image_raii.o', 'histogram_raii.o']
+OBJECTS = ['face_detection.o', 'image_raii.o', 'histogram_raii.o', 'window_raii.o']
 
 task :default => ["face_detection"]
+
+task :run do
+  system( "./face_detection Friends.jpg" )
+end
 
 file "face_detection" => OBJECTS do
   sh "#{CC} -o face_detection #{OBJECTS.join( ' ' )} #{LFLAGS}"
@@ -27,4 +31,8 @@ end
 
 file "histogram_raii.o" => ["#{OPENCV_UTILS}/histogram_raii.cpp", "#{OPENCV_UTILS}/histogram_raii.hpp"] do
   sh "#{CC} -c #{OPENCV_UTILS}/histogram_raii.cpp #{CFLAGS}"
+end
+
+file "window_raii.o" => ["#{OPENCV_UTILS}/window_raii.cpp", "#{OPENCV_UTILS}/window_raii.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/window_raii.cpp #{CFLAGS}"
 end

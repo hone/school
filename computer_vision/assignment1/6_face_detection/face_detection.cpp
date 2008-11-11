@@ -1,6 +1,7 @@
 #include <string>
 #include <image_raii.hpp>
 #include <histogram_raii.hpp>
+#include <window_raii.hpp>
 #include <cv.h>
 #include <highgui.h>
 
@@ -43,10 +44,10 @@ CvRect specifyROI( IplImage * image )
 	rectangle_corners.second.x = -1;
 	rectangle_corners.second.y = -1;
 
-	cvNamedWindow( WINDOW_NAME, CV_WINDOW_AUTOSIZE );
-	cvShowImage( WINDOW_NAME, image);
+	WindowRAII window( WINDOW_NAME );
+	cvShowImage( window.name, image);
 
-	cvSetMouseCallback( WINDOW_NAME, on_mouse, &rectangle_corners );
+	cvSetMouseCallback( window.name, on_mouse, &rectangle_corners );
 
 	// wait until the rectangular bounding box is set
 	while( rectangle_corners.first.x < 0 || rectangle_corners.first.y < 0 || rectangle_corners.second.x < 0 || rectangle_corners.second.y < 0 )
@@ -54,12 +55,18 @@ CvRect specifyROI( IplImage * image )
 		cvWaitKey( WAIT_TIME );
 	}
 
-	cvDestroyWindow( WINDOW_NAME );
 	CvPoint top_left_corner = rectangle_corners.first;
 	CvPoint bottom_right_corner = rectangle_corners.second;
 	int x_distance = bottom_right_corner.x - top_left_corner.x;
 	int y_distance = bottom_right_corner.y - top_left_corner.y;
 	CvRect image_roi = cvRect( top_left_corner.x, top_left_corner.y, x_distance, y_distance );
+
+	// display rectangle
+	CvScalar red;
+	red.val[2] = 255;
+	cvRectangle( image, top_left_corner, bottom_right_corner, red, 1 );
+	cvShowImage( window.name, image );
+	cvWaitKey( WAIT_TIME );
 
 	return image_roi;
 }
@@ -166,9 +173,9 @@ int main( int argc, char * agv[] )
 	{
 		for( int j = 0; j < image_size.height; j++ )
 		{
-			printf( "%f.2 ", *( probability_map + i * image_size.width + j ) );
+			//printf( "%f.2 ", *( probability_map + i * image_size.width + j ) );
 		}
-		printf( "\n" );
+		//printf( "\n" );
 	}
 
 	delete[] probability_map;
