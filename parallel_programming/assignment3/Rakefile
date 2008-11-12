@@ -1,0 +1,22 @@
+file "gameoflife" => "gameoflife.o" do
+  sh 'mpicxx gameoflife.o -o gameoflife'
+end
+
+file "gameoflife.o" => "gameoflife.cpp" do
+  sh 'mpicxx -c gameoflife.cpp'
+end
+
+desc "clean built files"
+task :clean do
+  files = ['gameoflife', 'gameoflife.o']
+  files.each do |file|
+    if File.exist?( file )
+      FileUtils.rm( file )
+    end
+  end
+end
+
+desc "run game of life"
+task :run => "gameoflife" do
+  sh 'mpirun -np 4 ./gameoflife'
+end
