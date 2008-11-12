@@ -13,7 +13,7 @@ int main( int argc, char  **argv )
 
 	MPI_Comm_size( MPI_COMM_WORLD, &num_procs );
 	MPI_Comm_rank( MPI_COMM_WORLD, &ID );
-	printf( "\n Never miss a good chance to shut up &d \n", ID );
+	printf( "\n Never miss a good chance to shut up %d \n", ID );
 
 	MPI_Finalize();
 }

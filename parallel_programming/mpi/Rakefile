@@ -1,0 +1,41 @@
+file "hello_world" => "hello_world.o" do
+  sh 'mpicxx hello_world.o -o hello_world'
+end
+
+file "hello_world.o" => "hello_world.cpp" do
+  sh 'mpicxx -c hello_world.cpp'
+end
+
+desc 'clean hello_world'
+task :clean_hello_world do
+  files = ['hello_world.o', 'hello_world']
+  clean( files )
+end
+
+file "message_bounce" => "message_bounce.o" do
+  sh "mpicxx message_bounce.o -o message_bounce"
+end
+
+file "message_bounce.o" => "message_bounce.cpp" do
+  sh "mpicxx -c message_bounce.cpp"
+end
+
+desc "clean message_bounce"
+task :clean_message_bounce do
+  files = ['message_bounce.o', 'message_bounce']
+  clean( files )
+end
+
+desc "run message_bounce"
+task :run_message_bounce => "message_bounce" do
+  sh 'mpirun -np 2 ./message_bounce'
+end
+
+def clean( files )
+  files.each do |file|
+    if File.exist?( file )
+      puts "Removing #{file}"
+      FileUtils.rm( file )
+    end
+  end
+end
