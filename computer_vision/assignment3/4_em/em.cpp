@@ -1,11 +1,28 @@
 #include <iostream>
 #include <em.hpp>
 #include <image_raii.hpp>
+#include <window_raii.hpp>
 #include <vector>
+#include <iostream>
+
+const int GRAPH_WIDTH = 100;
+const int GRAPH_HEIGHT = 100;
+const int RED = 0;
+const int GREEN = 1;
 
 void em( CvMat * data, int nClusters, int nTries, CvSize image_size )
 {
-	random_point( image_size );
+	std::vector<CvPoint> starting_points;
+	std::vector<CvPoint> means;
+
+	display_data( data );
+	
+	for( int i = 0; i < nClusters; i++ )
+	{
+		CvPoint point = random_point( image_size );
+		starting_points.push_back( point );
+		means.push_back( point );
+	}
 }
 
 MatrixRAII convert_data( IplImage * image )
@@ -18,10 +35,10 @@ MatrixRAII convert_data( IplImage * image )
 	{
 		for( int y = 0; y < image->height; y++ )
 		{
-			// green
-			cvmSet( data.matrix, 0, y + x, cvGet2D( image, y, x ).val[1] / 255.0 );
 			// red
-			cvmSet( data.matrix, 1, y + x, cvGet2D( image, y, x ).val[2] / 255.0 );
+			cvmSet( data.matrix, RED, ( y * image->width ) + x, cvGet2D( image, y, x ).val[2] / 255.0 );
+			// green
+			cvmSet( data.matrix, GREEN, ( y * image->width ) + x, cvGet2D( image, y, x ).val[1] / 255.0 );
 		}
 	}
 
@@ -38,6 +55,36 @@ CvPoint random_point( CvSize image_size )
 	int y = (int)( ( rand() * 1.0 / RAND_MAX ) * image_size.height );
 
 	return cvPoint( x, y );
+}
+
+void display_data( CvMat * data )
+{
+	ImageRAII graph( cvCreateImage( cvSize( 101, 101 ), IPL_DEPTH_8U, 1 ) );
+
+	for( int i = 0; i < graph.image->width; i++ )
+	{
+		for( int j = 0; j < graph.image->height; j++ )
+		{
+			CvScalar white;
+			white.val[0] = 255;
+			cvSet2D( graph.image, j, i, white );
+		}
+	}
+
+	for( int i = 0; i < data->width; i++ )
+	{
+		CvScalar black;
+		black.val[0] = 0;
+		int green = cvmGet( data, GREEN, i ) * 100;
+		int red = cvmGet( data, RED, i ) * 100;
+		std::cout << "Green: " << green << std::endl;
+		std::cout << "Red: " << red << std::endl;
+		cvSet2D( graph.image, 100 - red, green, black );
+	}
+
+	WindowRAII window( "Graph" );
+	cvShowImage( window.name, graph.image );
+	cvWaitKey( 0 );
 }
 
 int main( int argc, char * argv[] )

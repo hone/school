@@ -10,7 +10,7 @@ CC = 'gcc'
 CFLAGS = `pkg-config --cflags opencv`.chomp + " -I#{OPENCV_UTILS}" + " -I."
 LFLAGS = `pkg-config --libs opencv`.chomp
 
-OBJECTS = ["#{NAME}.o", 'image_raii.o', 'matrix_raii.o']
+OBJECTS = ["#{NAME}.o", 'image_raii.o', 'matrix_raii.o', 'window_raii.o']
 
 desc "run program"
 task :run do
@@ -33,4 +33,8 @@ end
 
 file "matrix_raii.o" => ["#{OPENCV_UTILS}/matrix_raii.cpp", "#{OPENCV_UTILS}/matrix_raii.hpp"] do
   sh "#{CC} -c #{OPENCV_UTILS}/matrix_raii.cpp #{CFLAGS}"
+end
+
+file "window_raii.o" => ["#{OPENCV_UTILS}/window_raii.cpp", "#{OPENCV_UTILS}/window_raii.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/window_raii.cpp #{CFLAGS}"
 end
