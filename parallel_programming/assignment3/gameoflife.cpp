@@ -59,7 +59,14 @@ int count_alive_neighbors( int x, int y, int * rows )
 			int new_y = y + j;
 			int value;
 
-			if( new_x < 0 || new_y < 0 || new_x > DIMENSIONS || new_y > ( DIMENSIONS + 2 ) || ( i == 0 && j == 0 ) )
+			// wrap around for x
+			if( new_x < 0 )
+				new_x = DIMENSIONS - 1;
+			if( new_x >= DIMENSIONS )
+				new_x = 0;
+
+			// don't count itself
+			if( i == 0 && j == 0 )
 				value = 0;
 			else
 				value = rows[offset( new_x, new_y )];
@@ -91,23 +98,17 @@ bool check_neighborhood( int x, int y, int * rows )
 int * process_rows( int * rows, int amount_to_process )
 {
 	int * new_rows = new int[amount_to_process * DIMENSIONS];
-	int * sums = new int[amount_to_process * DIMENSIONS];
 
-	for( int i = 1; i < amount_to_process; i++ )
+	for( int i = 1; i <= amount_to_process; i++ )
 	{
 		for( int x = 0; x < DIMENSIONS; x++ )
 		{
-			sums[offset( x, i - 1 )] = count_alive_neighbors( x, i, rows );
 			if( check_neighborhood( x, i, rows ) )
 				new_rows[offset( x, i - 1 )] = ALIVE;
 			else
 				new_rows[offset( x, i - 1 )] = DEAD;
 		}
 	}
-
-	print_grid( -1, sums );
-	delete[] sums;
-	sums = NULL;
 
 	return new_rows;
 }
@@ -140,7 +141,7 @@ int main( int argc, char ** argv )
 					rows[offset( x, i + 1 )] = global_grid[offset( x, i )];
 				}
 			}
-			// set first and last rows as empty
+			// set first and last rows for wraparound
 			for( int i = 0 ; i < 2; i++ )
 			{
 				int y = 0;
@@ -149,15 +150,13 @@ int main( int argc, char ** argv )
 
 				for( int x = 0; x < DIMENSIONS; x++ )
 				{
-					rows[offset( x, y )] = empty_row[x];
+					if( y == 0 )
+						rows[offset( x, y )] = global_grid[offset( x, DIMENSIONS- 1 )];
+					else
+						rows[offset( x, y )] = global_grid[offset( x, 0 )];
 				}
 			}
 
-			print_grid( -2, rows );
-			for( int k = 0; k < DIMENSIONS; k++ )
-				std::cout << rows[offset( k, DIMENSIONS )] << " ";
-			std::cout << std::endl;
-			print_grid( -3, global_grid );
 			int * new_rows = process_rows( rows, DIMENSIONS );
 			memcpy( global_grid, new_rows, sizeof( global_grid ) );
 			delete[] new_rows;
