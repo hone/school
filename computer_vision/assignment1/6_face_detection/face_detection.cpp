@@ -1,4 +1,5 @@
 #include <string>
+#include <iostream>
 #include <image_raii.hpp>
 #include <histogram_raii.hpp>
 #include <window_raii.hpp>
@@ -64,8 +65,10 @@ CvRect specifyROI( IplImage * image )
 	// display rectangle
 	CvScalar red;
 	red.val[2] = 255;
-	cvRectangle( image, top_left_corner, bottom_right_corner, red, 1 );
-	cvShowImage( window.name, image );
+	// copy image so not to ruin original image
+	ImageRAII image_copy( cvCreateImage( cvGetSize( image ), image->depth, image->nChannels ) );
+	cvRectangle( image_copy.image, top_left_corner, bottom_right_corner, red, 1 );
+	cvShowImage( window.name, image_copy.image );
 	cvWaitKey( WAIT_TIME );
 
 	return image_roi;
@@ -78,6 +81,8 @@ CvRect specifyROI( IplImage * image )
  */
 HistogramRAII makeHueHistogram( IplImage * image, int bins )
 {
+	const int HIST_DIMENSIONS = 1;
+	const float NORMALIZATION_FACTOR = 1.0;
 	ImageRAII image_hsv( cvCreateImage( cvGetSize( image ), image->depth, 3 ) );
 	ImageRAII hue_plane( cvCreateImage( cvGetSize( image ), image->depth, 1 ) );
 	ImageRAII saturation_plane( cvCreateImage( cvGetSize( image ), image->depth, 1 ) );
@@ -91,8 +96,13 @@ HistogramRAII makeHueHistogram( IplImage * image, int bins )
 	cvCvtColor( image, image_hsv.image, CV_BGR2HSV );
 	// Split HSV Channels
 	cvCvtPixToPlane( image_hsv.image, hue_plane.image, saturation_plane.image, value_plane.image, 0 );
-	HistogramRAII hue_histogram( cvCreateHist( 1, hist_size, CV_HIST_ARRAY, ranges, 1 ) );
+	WindowRAII window( "ROI" );
+	cvShowImage( window.name, hue_plane.image );
+	cvWaitKey( 0 );
+	HistogramRAII hue_histogram( cvCreateHist( HIST_DIMENSIONS, hist_size, CV_HIST_ARRAY, ranges, 1 ) );
 	cvCalcHist( planes, hue_histogram.histogram, 0, 0 );
+	// normalize histogram b/t 0 and 1
+	cvNormalizeHist( hue_histogram.histogram, NORMALIZATION_FACTOR );
 
 	return hue_histogram;
 }
@@ -108,7 +118,12 @@ float * makeProbabilityMap( IplImage * image, CvHistogram * histogram, int bins 
 	CvSize image_size = cvGetSize( image );
 	float sum = 0;
 	float bin_values[bins];
+	ImageRAII image_hsv( cvCreateImage( cvGetSize( image ), image->depth, 3 ) );
+	ImageRAII map( cvCreateImage( image_size, IPL_DEPTH_8U, 1 ) );
 	float * probability_map = new float[image_size.width * image_size.height];
+
+	// convert to HSV
+	cvCvtColor( image, image_hsv.image, CV_BGR2HSV );
 
 	for( int i = 0; i < bins; i++ )
 	{
@@ -121,6 +136,20 @@ float * makeProbabilityMap( IplImage * image, CvHistogram * histogram, int bins 
 	{
 		for( int j = 0; j < image_size.height; j++ )
 		{
+			float hue = cvGet2D( image_hsv.image, j, i ).val[0] / 255.0;
+			for( int k = 0; k < bins; k++ )
+			{
+				float max_bin_value = ( 1.0 / bins ) * k + 1;
+				float min_bin_value = ( 1.0 / bins ) * k;
+				if( hue < max_bin_value && hue > min_bin_value )
+				{
+					float hist_value = cvQueryHistValue_1D( histogram, k );
+					CvScalar value;
+					value.val[0] = hist_value * 255;
+					cvSet2D( map.image, j, i, value );
+				}
+			}
+			/*
 			float total_bin_contribution = 0;
 			CvRect roi = cvRect( i, j, 1, 1 );
 			CvSize one_pixel = cvSize( 1, 1 );
@@ -139,17 +168,20 @@ float * makeProbabilityMap( IplImage * image, CvHistogram * histogram, int bins 
 			}
 
 			*( probability_map + i * image_size.width + j ) = total_bin_contribution / sum;
-			//printf( "%f ", total_bin_contribution / sum );
+		*/
 		}
-		//printf( "\n" );
 	}
+
+	WindowRAII window( "Probability Map" );
+	cvShowImage( window.name, map.image );
+	cvWaitKey( 0 );
 
 	return probability_map;
 }
 
 int main( int argc, char * agv[] )
 {
-	const int BINS = 10;
+	const int BINS = 32;
 
 	float * probability_map;
 
