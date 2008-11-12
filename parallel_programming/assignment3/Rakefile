@@ -3,7 +3,7 @@ file "gameoflife" => "gameoflife.o" do
 end
 
 file "gameoflife.o" => "gameoflife.cpp" do
-  sh 'mpicxx -c gameoflife.cpp'
+  sh 'mpicxx -g -c gameoflife.cpp'
 end
 
 desc "clean built files"
@@ -18,5 +18,5 @@ end
 
 desc "run game of life"
 task :run => "gameoflife" do
-  sh 'mpirun -np 4 ./gameoflife'
+  sh 'mpirun -np 1 ./gameoflife'
 end
