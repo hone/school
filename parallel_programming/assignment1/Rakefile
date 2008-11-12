@@ -73,6 +73,32 @@ namespace :coin_flip do
       system( "qsub coin_flip_scaleup.sh #{thread} #{ITERATION_MAX_MULTIPLIER} #{PLOT}" )
     end
   end
+
+  desc "Examine fixed startup cost"
+  task :fixed_startup_cost do
+    THREADS = 1
+    COIN_FLIPS = 8
+    ITERATIONS = 20
+
+    1.upto( COIN_FLIPS ) do |coin_flips|
+      1.upto( ITERATIONS ) do |iteration|
+        system( "java CoinFlip #{THREADS * coin_flips} #{coin_flips * 10 ** 6 } #{iteration} #{PLOT}" )
+      end
+    end
+  end
+
+  desc "Examine per thread startup cost"
+  task "per_thread_startup_cost" do
+    THREADS_MULTIPLIER = 8
+    ITERATIONS = 20
+    COIN_FLIPS = 1
+
+    1.upto( THREADS_MULTIPLIER ) do |multiplier|
+      1.upto( ITERATIONS ) do |iteration|
+        system( "java CoinFlip #{multiplier * 100 * 2} #{COIN_FLIPS} #{iteration} #{PLOT}" )
+      end
+    end
+  end
 end
 
 namespace :brute_force_des do

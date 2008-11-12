@@ -3,22 +3,22 @@ require 'gnuplot'
 require 'coin_flip_data_parser'
 
 parser = CoinFlipDataParser.new( ARGV[0] )
-MAX_THREADS = parser.data[parser.data.keys.first].size - 1
+MAX_THREADS = parser.data[parser.data.keys.first].size
 
 # graph data with gnuplot
 Gnuplot.open do |gp|
   Gnuplot::Plot.new( gp ) do |plot|
-    averages = ( 1..MAX_THREADS ).collect {|thread| parser.data[parser.data.keys.first][thread][0] }
     x = ( 1..MAX_THREADS ).to_a
+    averages = x.collect {|thread| parser.data[parser.data.keys.first][thread][0] }
     y = ( 1..MAX_THREADS ).collect {|thread| averages[0] / averages[thread - 1] }
 
-    plot.title "Number of Threads vs. Elapsed Time"
+    plot.title "Number of Threads vs. Speedup"
     plot.xlabel "Threads"
-    plot.ylabel "Elapsed Time (ms)"
+    plot.ylabel "Speedup"
     plot.xrange "[0:#{( MAX_THREADS + 1 )}]"
     plot.yrange "[0:#{ y.max + y.min }]"
-    #plot.terminal "png"
-    #plot.output "coin_flip_speedup.png"
+    plot.terminal "png"
+    plot.output "coin_flip_speedup.png"
 
     plot.data << Gnuplot::DataSet.new( [x,y] ) do |ds|
       ds.with = "linespoints"

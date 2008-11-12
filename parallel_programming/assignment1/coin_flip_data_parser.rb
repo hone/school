@@ -21,8 +21,7 @@ class CoinFlipDataParser
         thread = elements.shift.to_i
         time = elements.shift.to_i
 
-        @data[flip_number] = Array.new if @data[flip_number].nil?
-        @data[flip_number][AVERAGE] = Array.new if @data[flip_number][AVERAGE].nil? # this will hold the averages
+        @data[flip_number] = Hash.new if @data[flip_number].nil?
         @data[flip_number][thread] = [0] if @data[flip_number][thread].nil? # this will hold the averages
 
         @data[flip_number][thread][iteration] = time
@@ -30,8 +29,9 @@ class CoinFlipDataParser
     end
 
     @data.each do |flip_number, threads|
-      threads.each do |thread|
-        thread[AVERAGE] = average( thread ) unless thread.empty?
+
+      threads.each do |thread, values|
+        values[AVERAGE] = average( values ) unless values.empty?
       end
     end
   end
