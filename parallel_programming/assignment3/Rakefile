@@ -3,7 +3,7 @@ file "gameoflife" => "gameoflife.o" do
 end
 
 file "gameoflife.o" => "gameoflife.cpp" do
-  sh 'mpicxx -g -c gameoflife.cpp'
+  sh 'mpicxx -c gameoflife.cpp -I.'
 end
 
 desc "clean built files"
