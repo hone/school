@@ -13,7 +13,7 @@ LFLAGS = `pkg-config --libs opencv`.chomp
 OBJECTS = ["#{NAME}.o", 'image_raii.o', 'matrix_raii.o', 'window_raii.o']
 
 desc "run program"
-task :run do
+task :run => NAME do
   system( "./#{NAME} red_green.png 2 1" )
 end
 
