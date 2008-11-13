@@ -14,7 +14,7 @@ OBJECTS = ["#{NAME}.o", 'image_raii.o', 'matrix_raii.o']
 
 desc "run program"
 task :run do
-  system( "./#{NAME} data/box.pgm data/scene.pgm" )
+  system( "./#{NAME} data/box.pgm data/box.key data/scene.pgm data/scene.key" )
 end
 
 task :default => [NAME]

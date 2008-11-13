@@ -138,7 +138,7 @@ ImageRAII match( IplImage * image1, IplImage * image2, std::pair< CvMat *, CvMat
 			magnitude1 += pow( cvmGet( image1_keys.second, i, k ), 2 );
 		magnitude1 = cvSqrt( magnitude1 );
 
-		// compare a vector in image1 to every vector in image2
+		// compare a vector in image1 to every vector in image2 by calculating the cosine simularity
 		for( int j = 0; j < image2_keys.first->height; j++ )
 		{
 			MatrixRAII descriptor1( cvCreateMat( 1, image1_keys.second->cols, CV_32FC1 ) );

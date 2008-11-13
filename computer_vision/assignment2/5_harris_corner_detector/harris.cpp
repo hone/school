@@ -84,6 +84,11 @@ ImageRAII makePyramid( IplImage * image, float sigma )
 	return scaled_down;
 }
 
+ImageRAII localMaxSup( std::vector< IplImage * >pyrCor, int scale )
+{
+	return NULL;
+}
+
 int main( int argc, char * argv[] )
 {
 	const char * WINDOW_NAME = "Harris Corner Detection";
