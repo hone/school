@@ -9,15 +9,14 @@ const int GRAPH_HEIGHT = 100;
 const int RED = 0;
 const int GREEN = 1;
 
-void em( CvMat * data, int nClusters, int nTries, CvSize image_size )
+void em( CvMat * data, int nClusters, int nTries, IplImage * image )
 {
-	std::vector<CvMat *> starting_points;
+	CvSize image_size = cvGetSize( image );
+	std::vector<CvPoint> starting_points;
 	std::vector<CvMat *> means;
 	// 2 x 2 matrix
 	std::vector<CvMat *> variances;
 	std::vector<double> weights;
-
-	display_data( data );
 
 	MatrixRAII initial_variance( cvCreateMat( 2, 2, CV_32FC1 ) );
 	cvmSet( initial_variance.matrix, 0, 0, 1.0 );
@@ -30,9 +29,12 @@ void em( CvMat * data, int nClusters, int nTries, CvSize image_size )
 	// initialize starting values
 	for( int i = 0; i < nClusters; i++ )
 	{
-		CvMat * point = random_point( image_size );
+		CvPoint point = random_point( image_size );
 		starting_points.push_back( point );
-		means.push_back( point );
+		double red = cvGet2D( image, point.y, point.x ).val[2] / 255.0;
+		double green = cvGet2D( image, point.y, point.x ).val[1] / 255.0;
+		MatrixRAII x = create_point( red, green );
+		means.push_back( cvCloneMat( x.matrix ) );
 		
 		// set variance
 		variances.push_back( cvCloneMat( initial_variance.matrix ) );
@@ -41,11 +43,15 @@ void em( CvMat * data, int nClusters, int nTries, CvSize image_size )
 		weights.push_back( initial_weight );
 	}
 
+	display_data( data, means, variances, weights, image_size );
+
 	MatrixRAII r = expectation( data, nClusters, means, variances, weights );
 	maximization( r.matrix, data, means, variances, weights );
+
+	display_data( data, means, variances, weights, image_size );
 }
 
-MatrixRAII expectation( CvMat * data, int nClusters, std::vector<CvMat *> means, std::vector<CvMat *> variances, std::vector<double> weights )
+MatrixRAII expectation( CvMat * data, int nClusters, std::vector<CvMat *> &means, std::vector<CvMat *> &variances, std::vector<double> &weights )
 {
 	MatrixRAII r( cvCreateMat( nClusters, data->width, CV_32FC1 ) );
 
@@ -107,7 +113,7 @@ double normal_distribution( double z, CvMat * x, CvMat * mean, CvMat * variance 
 	return ( 1 / z ) * pow( M_E, cvmGet( exponent.matrix, 0, 0 ) );
 }
 
-void maximization( CvMat * r, CvMat * data, std::vector<CvMat *> means, std::vector<CvMat *> variances, std::vector<double> weights )
+void maximization( CvMat * r, CvMat * data, std::vector<CvMat *> &means, std::vector<CvMat *> &variances, std::vector<double> &weights )
 {
 	int n = data->width;
 	std::vector<CvMat *> old_means;
@@ -166,6 +172,7 @@ void maximization( CvMat * r, CvMat * data, std::vector<CvMat *> means, std::vec
 
 		MatrixRAII variance( cvCreateMat( 2, 2, CV_32FC1 ) );
 		cvScale( variance_numerator_sum.matrix, variance.matrix, sum );
+		variances[c] = variance.matrix;
 	}
 }
 
@@ -189,31 +196,29 @@ MatrixRAII convert_data( IplImage * image )
 	return data;
 }
 
-CvMat * random_point( CvSize image_size )
+CvPoint random_point( CvSize image_size )
 {
-	CvMat * point( cvCreateMat( 2, 1, CV_32FC1 ) );
-	time_t t;
-	t = time( NULL );
-	srand( t );
 
 	int x = (int)( ( rand() * 1.0 / RAND_MAX ) * image_size.width );
 	int y = (int)( ( rand() * 1.0 / RAND_MAX ) * image_size.height );
-	cvmSet( point, 0, 0, x * 1.0 );
-	cvmSet( point, 1, 0, y * 1.0 );
 
-	return point;
+	return cvPoint( x, y );
 }
 
-void display_data( CvMat * data )
+void display_data( CvMat * data, std::vector<CvMat *> means, std::vector<CvMat *> variances, std::vector<double> weights, CvSize image_size )
 {
-	ImageRAII graph( cvCreateImage( cvSize( 101, 101 ), IPL_DEPTH_8U, 1 ) );
+	int num_channels = 3;
+	ImageRAII graph( cvCreateImage( cvSize( 101, 101 ), IPL_DEPTH_8U, num_channels ) );
 
 	for( int i = 0; i < graph.image->width; i++ )
 	{
 		for( int j = 0; j < graph.image->height; j++ )
 		{
 			CvScalar white;
-			white.val[0] = 255;
+			for( int k = 0; k < num_channels; k++ )
+			{
+				white.val[k] = 255;
+			}
 			cvSet2D( graph.image, j, i, white );
 		}
 	}
@@ -221,10 +226,49 @@ void display_data( CvMat * data )
 	for( int i = 0; i < data->width; i++ )
 	{
 		CvScalar black;
-		black.val[0] = 0;
+		for( int k = 0; k < num_channels;k ++ )
+		{
+			black.val[k] = 0;
+		}
 		int green = cvmGet( data, GREEN, i ) * 100;
 		int red = cvmGet( data, RED, i ) * 100;
 		cvSet2D( graph.image, 100 - red, green, black );
+	}
+
+	int color = 0;
+	for( std::vector<CvMat *>::iterator it = means.begin(); it != means.end(); it++ )
+	{
+		CvScalar red_color;
+		red_color.val[2] = 255;
+		CvScalar blue_color;
+		blue_color.val[0] = 255;
+		int green = cvmGet( *it, GREEN, 0 ) * 100;
+		int red = cvmGet( *it, RED, 0 ) * 100;
+		std::cout << red << ", " << green << std::endl;
+
+		for( int i = -3; i <= 3; i++ )
+		{
+			for( int j = -3; j <= 3; j++ )
+			{
+				int new_red = red + i;
+				int new_green = green + i;
+
+				if( new_red < 0 )
+					new_red = 0;
+				if( new_green < 0 )
+					new_green = 0;
+				if( new_red >= image_size.width )
+					new_red = image_size.width - 1;
+				if( new_green >= image_size.height )
+					new_green = image_size.height - 1;
+				if( color == 0 )
+					cvSet2D( graph.image, new_red, new_green, red_color );
+				else
+					cvSet2D( graph.image, new_red, new_green, blue_color );
+			}
+		}
+
+		color++;
 	}
 
 	WindowRAII window( "Graph" );
@@ -241,10 +285,13 @@ int main( int argc, char * argv[] )
 	}
 	else
 	{
+		time_t t;
+		t = time( NULL );
+		srand( t );
+
 		ImageRAII image( argv[1] );
-		CvSize image_size = cvGetSize( image.image );
 		MatrixRAII data = convert_data( image.image );
-		em( data.matrix, 2, 1, image_size );
+		em( data.matrix, 2, 1, image.image );
 	}
 
 	return 0;
