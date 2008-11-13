@@ -18,6 +18,11 @@ class MatrixRAII
 		 */
 		MatrixRAII( CvMat * mat );
 		/**
+		 * Copy constructor.
+		 * @param mat MatrixRAII copy.
+		 */
+		MatrixRAII( const MatrixRAII &mat );
+		/**
 		 * Cleans up the CvMat.
 		 */
 		~MatrixRAII();
