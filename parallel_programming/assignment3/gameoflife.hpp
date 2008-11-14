@@ -10,3 +10,5 @@ bool check_neighborhood( int x, int y, int * rows );
 int * process_rows( int * rows, int amount_to_process );
 // setup specified rows for global grid
 int * setup_rows( int start_index, int end_index );
+// copy new rows back into the global_grid
+void copy_to_global_grid( int start_index, int end_index, int * new_rows );

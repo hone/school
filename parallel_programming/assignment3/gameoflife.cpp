@@ -146,6 +146,14 @@ int * setup_rows( int start_index, int end_index )
 	return rows;
 }
 
+void copy_to_global_grid( int start_index, int end_index, int * new_rows )
+{
+	int length = end_index - start_index + 1;
+	for( int j = 0; j < length; j++ )
+		for( int i = 0; i < DIMENSIONS; i++ )
+			global_grid[offset( i, j )] = new_rows[offset( i, j )];
+}
+
 int main( int argc, char ** argv )
 {
 	const int NUM_SEND_ROWS = 5;
@@ -168,7 +176,8 @@ int main( int argc, char ** argv )
 			int * new_rows = process_rows( rows, DIMENSIONS );
 
 			// copy back to global grid
-			memcpy( global_grid, new_rows, sizeof( global_grid ) );
+			copy_to_global_grid( 0, DIMENSIONS - 1, new_rows );
+			//memcpy( global_grid, new_rows, sizeof( global_grid ) );
 
 			print_grid( i, global_grid );
 
