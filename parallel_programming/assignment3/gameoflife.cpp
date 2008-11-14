@@ -113,6 +113,32 @@ int * process_rows( int * rows, int amount_to_process )
 	return new_rows;
 }
 
+int * setup_rows( int start_index, int end_index )
+{
+	// send actual + 2 rows
+	int length = end_index - start_index + 3;
+	int cell_size = sizeof( global_grid[0] );
+	int * rows = new int[( length ) * DIMENSIONS];
+	int copy_length = length * DIMENSIONS * cell_size;
+	int start_offset = 0;
+	int end_offset = 0;
+
+	if( start_index == 0 )
+	{
+		memcpy( global_grid + ( DIMENSIONS * (DIMENSIONS - 1) ), rows, DIMENSIONS * cell_size );
+		start_offset += DIMENSIONS * cell_size;
+		copy_length -= DIMENSIONS * cell_size;
+	}
+	// copy first row (wrap around) and copy 1 less in cell size
+	if( end_index == DIMENSIONS - 1 )
+	{
+		memcpy( global_grid, rows + ( length - 1 ) * DIMENSIONS, DIMENSIONS * cell_size );
+		copy_length -= DIMENSIONS * cell_size;
+	}
+
+	memcpy( global_grid + ( cell_size * start_index * DIMENSIONS ), rows + start_offset, copy_length );
+}
+
 int main( int argc, char ** argv )
 {
 	const int NUM_SEND_ROWS = 5;
@@ -129,11 +155,11 @@ int main( int argc, char ** argv )
 	{
 		print_grid( 0, global_grid );
 
-		// temp grid
+		// temp grid to pass in
 		int * rows = new int[LENGTH + ( 2 * DIMENSIONS )];
 		for( int j = 1; j <= ITERATIONS; j++ )
 		{
-
+			// copy global grid
 			for( int i = 0; i < DIMENSIONS; i++ )
 			{
 				for( int x = 0; x < DIMENSIONS; x++ )
@@ -162,6 +188,7 @@ int main( int argc, char ** argv )
 			delete[] new_rows;
 			new_rows = NULL;
 
+			// print output
 			print_grid( j, global_grid );
 		}
 

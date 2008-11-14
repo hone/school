@@ -8,3 +8,5 @@ int count_alive_neighbors( int x, int y, int * rows );
 bool check_neighborhood( int x, int y, int * rows );
 // process the rows of the grid for an interation
 int * process_rows( int * rows, int amount_to_process );
+// setup specified rows for global grid
+int * setup_rows( int start_index, int end_index );
