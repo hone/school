@@ -8,7 +8,6 @@ const int DEAD = 0;
 const int ALIVE = 1;
 const int ITERATIONS = 64;
 const int LENGTH = DIMENSIONS * DIMENSIONS;
-int empty_row[ DIMENSIONS ] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
 int global_grid[ LENGTH ] = {
 	0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 	0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
@@ -99,10 +98,13 @@ int * process_rows( int * rows, int amount_to_process )
 {
 	int * new_rows = new int[amount_to_process * DIMENSIONS];
 
+	// don't process first and last rows (only need for neighbor counting)
 	for( int i = 1; i <= amount_to_process; i++ )
 	{
 		for( int x = 0; x < DIMENSIONS; x++ )
 		{
+			// rows x by y
+			// new_rows is x by (y-2), offset is 1 from top and bottom
 			if( check_neighborhood( x, i, rows ) )
 				new_rows[offset( x, i - 1 )] = ALIVE;
 			else
@@ -116,27 +118,32 @@ int * process_rows( int * rows, int amount_to_process )
 int * setup_rows( int start_index, int end_index )
 {
 	// send actual + 2 rows
-	int length = end_index - start_index + 3;
-	int cell_size = sizeof( global_grid[0] );
-	int * rows = new int[( length ) * DIMENSIONS];
-	int copy_length = length * DIMENSIONS * cell_size;
 	int start_offset = 0;
-	int end_offset = 0;
+	int length = end_index - start_index + 3;
+	int * rows = new int[length * DIMENSIONS];
 
-	if( start_index == 0 )
-	{
-		memcpy( global_grid + ( DIMENSIONS * (DIMENSIONS - 1) ), rows, DIMENSIONS * cell_size );
-		start_offset += DIMENSIONS * cell_size;
-		copy_length -= DIMENSIONS * cell_size;
-	}
 	// copy first row (wrap around) and copy 1 less in cell size
 	if( end_index == DIMENSIONS - 1 )
 	{
-		memcpy( global_grid, rows + ( length - 1 ) * DIMENSIONS, DIMENSIONS * cell_size );
-		copy_length -= DIMENSIONS * cell_size;
+		length--;
+		for( int i = 0; i < DIMENSIONS; i++ )
+			rows[offset( i, length )] = global_grid[offset( i, 0 )];
+	}
+	// copy last row (wrap around) and copy 1 less in cell size
+	if( start_index == 0 )
+	{
+		start_offset = 1;
+		length--;
+		for( int i = 0; i < DIMENSIONS; i++ )
+			rows[offset( i, 0 )] = global_grid[offset( i, DIMENSIONS - 1)];
 	}
 
-	memcpy( global_grid + ( cell_size * start_index * DIMENSIONS ), rows + start_offset, copy_length );
+	// copy rest of the rows
+	for( int j = 0; j < length; j++ )
+		for( int i = 0; i < DIMENSIONS; i++ )
+			rows[offset( i, j + start_offset )] = global_grid[offset( i, j )];
+
+	return rows;
 }
 
 int main( int argc, char ** argv )
@@ -145,7 +152,6 @@ int main( int argc, char ** argv )
 	int num_procs = 0; // number of processes
 	int ID; // process (or node) id
 	MPI_Status stat; // MPI status parameter
-	int * buffer = new int[NUM_SEND_ROWS * DIMENSIONS];
 
 	MPI_Init( & argc, &argv ); // initialize MPI environment
 	MPI_Comm_rank( MPI_COMM_WORLD, &ID ); // find rank of this process in the group
@@ -155,49 +161,23 @@ int main( int argc, char ** argv )
 	{
 		print_grid( 0, global_grid );
 
-		// temp grid to pass in
-		int * rows = new int[LENGTH + ( 2 * DIMENSIONS )];
-		for( int j = 1; j <= ITERATIONS; j++ )
+		for( int i = 1; i <= ITERATIONS; i++ )
 		{
-			// copy global grid
-			for( int i = 0; i < DIMENSIONS; i++ )
-			{
-				for( int x = 0; x < DIMENSIONS; x++ )
-				{
-					rows[offset( x, i + 1 )] = global_grid[offset( x, i )];
-				}
-			}
-			// set first and last rows for wraparound
-			for( int i = 0 ; i < 2; i++ )
-			{
-				int y = 0;
-				if( i == 1 )
-					y = DIMENSIONS + 1;
-
-				for( int x = 0; x < DIMENSIONS; x++ )
-				{
-					if( y == 0 )
-						rows[offset( x, y )] = global_grid[offset( x, DIMENSIONS- 1 )];
-					else
-						rows[offset( x, y )] = global_grid[offset( x, 0 )];
-				}
-			}
-
+			// temp grid to pass in
+			int * rows = setup_rows( 0, DIMENSIONS - 1 );
 			int * new_rows = process_rows( rows, DIMENSIONS );
+
+			// copy back to global grid
 			memcpy( global_grid, new_rows, sizeof( global_grid ) );
+
+			print_grid( i, global_grid );
+
 			delete[] new_rows;
 			new_rows = NULL;
-
-			// print output
-			print_grid( j, global_grid );
+			delete[] rows;
+			rows = NULL;
 		}
-
-		delete[] rows;
-		rows = NULL;
 	}
 
 	MPI_Finalize();
-
-	delete[] buffer;
-	buffer = NULL;
 }
