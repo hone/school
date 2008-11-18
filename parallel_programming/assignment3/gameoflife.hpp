@@ -1,5 +1,6 @@
 // prints the grid
 void print_grid( int iteration, int * grid );
+void print_grid( int iteration, int * grid, int height );
 // calculates the offset of the array
 int offset( int x, int y );
 // returns the number of alive cells in the neighboring cells
@@ -8,6 +9,8 @@ int count_alive_neighbors( int x, int y, int * rows );
 bool check_neighborhood( int x, int y, int * rows );
 // process the rows of the grid for an interation
 int * process_rows( int * rows, int amount_to_process );
+// create a grid of the sums in each cell
+int * grid_sums( int * rows, int amount_to_process );
 // setup specified rows for global grid
 int * setup_rows( int start_index, int end_index );
 // copy new rows back into the global_grid

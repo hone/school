@@ -1,3 +1,5 @@
+task :default => 'gameoflife'
+
 file "gameoflife" => "gameoflife.o" do
   sh 'mpicxx gameoflife.o -o gameoflife'
 end
@@ -19,4 +21,14 @@ end
 desc "run game of life"
 task :run => "gameoflife" do
   sh 'mpirun -np 1 ./gameoflife'
+end
+
+desc "run game of life"
+task :run2 => "gameoflife" do
+  sh 'mpirun -np 2 ./gameoflife'
+end
+
+desc "run game of life"
+task :run4 => "gameoflife" do
+  sh 'mpirun -np 4 ./gameoflife'
 end
