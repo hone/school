@@ -229,8 +229,9 @@ int main( int argc, char ** argv )
 				rows_setup = NULL;
 			}
 
-			// process
+			// process master node
 			int * new_rows = process_rows( rows, rows_per_process );
+            copy_to_global_grid( indexes[0].first, indexes[0].second, new_rows );
 			
 			int receive_length = rows_per_process * DIMENSIONS;
 			int * rows_receive = new int[receive_length];
