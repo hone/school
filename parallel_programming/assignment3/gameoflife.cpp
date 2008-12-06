@@ -10,38 +10,6 @@ const int DEAD = 0;
 const int ALIVE = 1;
 const int ITERATIONS = 64;
 const int LENGTH = DIMENSIONS * DIMENSIONS;
-int global_grid[ LENGTH ] = {
-	0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-};
-
-void print_grid( int iteration, int * grid )
-{
-	std::cout << "Iteration " << iteration << ":\n";
-
-	for( int y = 0; y < DIMENSIONS; y++ )
-	{
-		for( int x = 0; x < DIMENSIONS; x++ )
-		{
-			std::cout << grid[offset( x, y )] << " ";
-		}
-		std::cout << std::endl;
-	}
-}
 
 void print_grid( int iteration, int * grid, int height )
 {
@@ -51,15 +19,25 @@ void print_grid( int iteration, int * grid, int height )
 	{
 		for( int x = 0; x < DIMENSIONS; x++ )
 		{
-			std::cout << grid[offset( x, y )] << " ";
+			std::cout << grid[offset( x, y, false )] << " ";
 		}
 		std::cout << std::endl;
 	}
 }
 
-int offset( int x, int y )
+int offset( int x, int y, bool bound )
 {
-	return x + ( y * DIMENSIONS );
+	int new_x = x;
+	int new_y = y;
+
+	// handle wrap arounds
+	if( bound )
+	{
+		new_x = ( x + DIMENSIONS ) % DIMENSIONS;
+		new_y = ( y + DIMENSIONS ) % DIMENSIONS;
+	}
+
+	return new_x + ( new_y * DIMENSIONS );
 }
 
 int count_alive_neighbors( int x, int y, int * rows )
@@ -73,12 +51,6 @@ int count_alive_neighbors( int x, int y, int * rows )
 			int new_x = x + i;
 			int new_y = y + j;
 			int value;
-
-			// wrap around for x
-			if( new_x < 0 )
-				new_x = DIMENSIONS - 1;
-			if( new_x >= DIMENSIONS )
-				new_x = 0;
 
 			// don't count itself
 			if( i == 0 && j == 0 )
@@ -110,25 +82,21 @@ bool check_neighborhood( int x, int y, int * rows )
 	return false;
 }
 
-int * process_rows( int * rows, int amount_to_process )
+int * process_rows( int * rows, int * local_grid, int amount_to_process )
 {
-	int * new_rows = new int[amount_to_process * DIMENSIONS];
-
 	// don't process first and last rows (only need for neighbor counting)
 	for( int i = 1; i <= amount_to_process; i++ )
 	{
 		for( int x = 0; x < DIMENSIONS; x++ )
 		{
 			// rows x by y
-			// new_rows is x by (y-2), offset is 1 from top and bottom
+			// local_grid is x by (y-2), offset is 1 from top and bottom
 			if( check_neighborhood( x, i, rows ) )
-				new_rows[offset( x, i - 1 )] = ALIVE;
+				local_grid[offset( x, i - 1 )] = ALIVE;
 			else
-				new_rows[offset( x, i - 1 )] = DEAD;
+				local_grid[offset( x, i - 1 )] = DEAD;
 		}
 	}
-
-	return new_rows;
 }
 
 int * grid_sums( int * rows, int amount_to_process )
@@ -147,48 +115,86 @@ int * grid_sums( int * rows, int amount_to_process )
 	return new_rows;
 }
 
-int * setup_rows( int start_index, int end_index )
+// send the row above and below
+// returns a DIMENSIONS x 2
+// first row is the row above
+// last row is the row below
+int * setup_rows( int * rows, int start_index, int end_index )
 {
-	// send actual + 2 rows
-	int start_offset = 0;
-	int length = end_index - start_index + 3;
-	int * rows = new int[length * DIMENSIONS];
+    int first_row = start_index - 1;
+    int last_row = end_index + 1;
+    int * new_rows = new int[DIMENSIONS * 2];
 
-	// copy first row (wrap around) and copy 1 less in cell size
-	if( end_index == DIMENSIONS - 1 )
-	{
-		length--;
-		for( int i = 0; i < DIMENSIONS; i++ )
-			rows[offset( i, length )] = global_grid[offset( i, 0 )];
-	}
-	// copy last row (wrap around) and copy 1 less in cell size
-	if( start_index == 0 )
-	{
-		start_offset = 1;
-		length--;
-		for( int i = 0; i < DIMENSIONS; i++ )
-			rows[offset( i, 0 )] = global_grid[offset( i, DIMENSIONS - 1)];
-	}
+    for( int i = 0; i < DIMENSIONS; i++ )
+    {
+        new_rows[offset( i, 0 )] = rows[offset( i, first_row )];
+        new_rows[offset( i, 1 )] = rows[offset( i, last_row )];
+    }
 
-	// copy rest of the rows
-	for( int j = 0; j < length; j++ )
-		for( int i = 0; i < DIMENSIONS; i++ )
-			rows[offset( i, j + start_offset )] = global_grid[offset( i, j + ( start_index - 1 ) + start_offset)];
-
-	return rows;
+	return new_rows;
 }
 
-void copy_to_global_grid( int start_index, int end_index, int * new_rows )
+void join_rows( int * two_rows, int * own_rows, int * destination, int rows_per_process )
 {
-	int length = end_index - start_index + 1;
+    for( int i = 0; i < DIMENSIONS; i++ )
+    {
+        destination[offset( i, 0 )] = two_rows[offset( i, 0 )];
+        destination[offset( i, rows_per_process + 1, false )] = two_rows[offset( i, 1 )];
+
+        for( int j = 1; j <= rows_per_process; j++ )
+            destination[offset( i, j )] = own_rows[offset( i, j - 1 )];
+    }
+}
+
+void copy_rows( int * source, int * destination, int source_start_index, int source_end_index, int destination_start_index )
+{
+	int length = source_end_index - source_start_index + 1;
 	for( int j = 0; j < length; j++ )
 		for( int i = 0; i < DIMENSIONS; i++ )
-			global_grid[offset( i, j + start_index )] = new_rows[offset( i, j )];
+			destination[offset( i, j + destination_start_index )] = source[offset( i, j + source_start_index )];
+}
+
+void calculate_indexes( std::vector< std::pair< int, int > > &indexes, int rows_per_process, int num_procs )
+{
+    int start_index = 0;
+    int end_index = rows_per_process - 1;
+    indexes.push_back( std::make_pair( start_index, end_index ) );
+
+    for( int j = 1; j < num_procs; j++ )
+    {
+        start_index = end_index + 1;
+        end_index = start_index + rows_per_process - 1;
+        indexes.push_back( std::make_pair( start_index, end_index ) );
+    }
+}
+
+void setup_local_grid( int * global_grid, int * local_grid, std::vector< std::pair< int, int > > indexes, int local_grid_size, int num_procs, int tag )
+{
+      copy_rows( global_grid, local_grid, indexes[0].first, indexes[0].second, 0 );
+      int * rows_setup = new int[local_grid_size];
+
+      for( int j = 1; j < num_procs; j++ )
+      {
+          copy_rows( global_grid, rows_setup, indexes[j].first, indexes[j].second, 0 );
+          MPI_Send( rows_setup, local_grid_size, MPI_INT, j, tag, MPI_COMM_WORLD );
+      }
+
+      delete[] rows_setup;
+	  rows_setup = NULL;
+}
+
+void node_process( int * two_rows, int * local_grid, int rows_per_process )
+{
+	int * rows = new int[DIMENSIONS * ( rows_per_process + 2 )];
+
+	join_rows( two_rows, local_grid, rows, rows_per_process );
+	process_rows( rows, local_grid, rows_per_process );
+	delete[] rows;
+	rows = NULL;
 }
 
 int main( int argc, char ** argv )
 {
-	const int NUM_SEND_ROWS = 5;
 	int num_procs = 0; // number of processes
 	int ID; // process (or node) id
 	int tag1 = 1;
@@ -201,27 +207,51 @@ int main( int argc, char ** argv )
 
 	int rows_per_process = DIMENSIONS / num_procs;
 	std::vector< std::pair< int, int > > indexes;
+    int test_grid[LENGTH] = {
+        0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    };
+    int local_grid[rows_per_process * DIMENSIONS];
+    int local_grid_size = rows_per_process * DIMENSIONS;
 
+    // need special prep before the first iteration
 	if( ID == 0 )
-		print_grid( 0, global_grid );
+    {
+		print_grid( 0, test_grid, DIMENSIONS );
 
+        calculate_indexes( indexes, rows_per_process, num_procs );
+        setup_local_grid( test_grid, local_grid, indexes, local_grid_size, num_procs, tag1 );
+    }
+    else
+    {
+        MPI_Recv( local_grid, local_grid_size, MPI_INT, 0, tag1, MPI_COMM_WORLD, &stat );
+    }
+
+    // do the iterations
 	for( int i = 1; i <= ITERATIONS; i++ )
 	{
 		if( ID == 0 )
 		{
-			int start_index = 0;
-			int end_index = rows_per_process - 1;
-			indexes.push_back( std::make_pair( start_index, end_index ) );
-			int * rows = setup_rows( start_index, end_index );
-
+			//int * rows = setup_rows( start_index, end_index );
 			// send
-			int send_length = ( rows_per_process + 2 ) * DIMENSIONS;
 			for( int j = 1; j < num_procs; j++ )
 			{
-				start_index = end_index + 1;
-				end_index = start_index + rows_per_process - 1;
-				indexes.push_back( std::make_pair( start_index, end_index ) );
-				int * rows_setup = setup_rows( start_index, end_index );
+				int * rows_setup = setup_rows( test_grid, indexes[j].first, indexes[j].second );
+                int send_length = 2 * DIMENSIONS;
 
 				MPI_Send( rows_setup, send_length, MPI_INT, j, tag1, MPI_COMM_WORLD );
 
@@ -230,37 +260,37 @@ int main( int argc, char ** argv )
 			}
 
 			// process master node
-			int * new_rows = process_rows( rows, rows_per_process );
-            copy_to_global_grid( indexes[0].first, indexes[0].second, new_rows );
-			
-			int receive_length = rows_per_process * DIMENSIONS;
-			int * rows_receive = new int[receive_length];
+            int * two_rows = setup_rows( test_grid, indexes[0].first, indexes[0].second );
+
+			node_process( two_rows, local_grid, rows_per_process );
+			delete[] two_rows;
+			two_rows = NULL;
+
+			// copy back to global grid
+			copy_rows( local_grid, test_grid, 0, rows_per_process - 1, indexes[0].first );
+
+			int * rows_receive = new int[local_grid_size];
 			// receive
 			for( int j = 1; j < num_procs; j++ )
 			{
-				MPI_Recv( rows_receive, receive_length, MPI_INT, j, tag2, MPI_COMM_WORLD, &stat );
-				copy_to_global_grid( indexes[j].first, indexes[j].second, rows_receive );
+				MPI_Recv( rows_receive, local_grid_size, MPI_INT, j, tag2, MPI_COMM_WORLD, &stat );
+				copy_rows( rows_receive, test_grid, 0, rows_per_process - 1, indexes[j].first );
 			}
 			delete[] rows_receive;
 			rows_receive = NULL;
 
-			print_grid( i, global_grid );
-
-			delete[] new_rows;
-			new_rows = NULL;
-			delete[] rows;
-			rows = NULL;
+			print_grid( i, test_grid, DIMENSIONS );
 		}
 		else
 		{
 			int send_length = rows_per_process * DIMENSIONS;
-			int receive_length = ( rows_per_process + 2 ) * DIMENSIONS;
+			int receive_length = 2 * DIMENSIONS;
 			int * rows_receive = new int[receive_length];
 			MPI_Recv( rows_receive, receive_length, MPI_INT, 0, tag1, MPI_COMM_WORLD, &stat );
 
-			int * rows_send = process_rows( rows_receive, rows_per_process );
+			node_process( rows_receive, local_grid, rows_per_process );
 
-			MPI_Send( rows_send, send_length, MPI_INT, 0, tag2, MPI_COMM_WORLD );
+			MPI_Send( local_grid, local_grid_size, MPI_INT, 0, tag2, MPI_COMM_WORLD );
 		}
 	}
 
