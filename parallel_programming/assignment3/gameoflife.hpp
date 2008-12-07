@@ -53,6 +53,16 @@ class Life
 		void setup_local_grid();
 		// processes all nodes
 		void node_process( int * two_rows );
+		// prep before iterations, fills the local_grid
+		void run_setup();
+		// send top / bottom rows to slave nodes
+		void send_to_slave_nodes();
+		// receive local grids from slave nodes
+		void receive_from_slave_nodes();
+		// process master node
+		void process_master_node();
+		// a step of the iteration of a slave node
+		void slave_node_iterate();
 
 	public:
 		Life( int id, int n_procs );

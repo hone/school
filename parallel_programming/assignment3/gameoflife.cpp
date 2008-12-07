@@ -223,9 +223,20 @@ void Life::node_process( int * two_rows )
 	rows = NULL;
 }
 
-void Life::run( int iterations )
+void Life::process_master_node()
 {
-    // need special prep before the first iteration
+	int * two_rows = setup_rows( global_grid, this->indexes[0].first, this->indexes[0].second );
+
+	node_process( two_rows );
+	delete[] two_rows;
+	two_rows = NULL;
+
+	// copy back to global grid
+	copy_rows( this->local_grid, global_grid, 0, this->rows_per_process - 1, this->indexes[0].first );
+}
+
+void Life::run_setup()
+{
 	if( this->id == 0 )
     {
 		print_grid( 0, global_grid );
@@ -236,53 +247,63 @@ void Life::run( int iterations )
     {
         MPI_Recv( local_grid, local_grid_size, MPI_INT, 0, tag1, MPI_COMM_WORLD, &stat );
     }
+}
+
+void Life::send_to_slave_nodes()
+{
+	for( int j = 1; j < num_procs; j++ )
+	{
+		int * rows_setup = setup_rows( global_grid, this->indexes[j].first, this->indexes[j].second );
+
+		MPI_Send( rows_setup, this->two_row_size, MPI_INT, j, this->tag1, MPI_COMM_WORLD );
+
+		delete[] rows_setup;
+		rows_setup = NULL;
+	}
+}
+
+void Life::receive_from_slave_nodes()
+{
+	int * rows_receive = new int[this->local_grid_size];
+	// receive
+	for( int j = 1; j < this->num_procs; j++ )
+	{
+		MPI_Recv( rows_receive, this->local_grid_size, MPI_INT, j, this->tag2, MPI_COMM_WORLD, &this->stat );
+		copy_rows( rows_receive, global_grid, 0, this->rows_per_process - 1, this->indexes[j].first );
+	}
+	delete[] rows_receive;
+	rows_receive = NULL;
+}
+
+void Life::slave_node_iterate()
+{
+	int * rows_receive = new int[this->two_row_size];
+	MPI_Recv( rows_receive, this->two_row_size, MPI_INT, 0, this->tag1, MPI_COMM_WORLD, &this->stat );
+
+	node_process( rows_receive );
+
+	MPI_Send( this->local_grid, this->local_grid_size, MPI_INT, 0, this->tag2, MPI_COMM_WORLD );
+}
+
+void Life::run( int iterations )
+{
+    // need special prep before the first iteration
+	run_setup();
 
     // do the iterations
 	for( int i = 1; i <= iterations; i++ )
 	{
 		if( this->id == 0 )
 		{
-			// send
-			for( int j = 1; j < num_procs; j++ )
-			{
-				int * rows_setup = setup_rows( global_grid, this->indexes[j].first, this->indexes[j].second );
-
-				MPI_Send( rows_setup, this->two_row_size, MPI_INT, j, this->tag1, MPI_COMM_WORLD );
-
-				delete[] rows_setup;
-				rows_setup = NULL;
-			}
-
-			// process master node
-            int * two_rows = setup_rows( global_grid, this->indexes[0].first, this->indexes[0].second );
-
-			node_process( two_rows );
-			delete[] two_rows;
-			two_rows = NULL;
-
-			// copy back to global grid
-			copy_rows( this->local_grid, global_grid, 0, this->rows_per_process - 1, this->indexes[0].first );
-
-			int * rows_receive = new int[this->local_grid_size];
-			// receive
-			for( int j = 1; j < this->num_procs; j++ )
-			{
-				MPI_Recv( rows_receive, this->local_grid_size, MPI_INT, j, this->tag2, MPI_COMM_WORLD, &this->stat );
-				copy_rows( rows_receive, global_grid, 0, this->rows_per_process - 1, this->indexes[j].first );
-			}
-			delete[] rows_receive;
-			rows_receive = NULL;
+			send_to_slave_nodes();
+			process_master_node();
+			receive_from_slave_nodes();
 
 			print_grid( i, global_grid );
 		}
 		else
 		{
-			int * rows_receive = new int[this->two_row_size];
-			MPI_Recv( rows_receive, this->two_row_size, MPI_INT, 0, this->tag1, MPI_COMM_WORLD, &this->stat );
-
-			node_process( rows_receive );
-
-			MPI_Send( this->local_grid, this->local_grid_size, MPI_INT, 0, this->tag2, MPI_COMM_WORLD );
+			slave_node_iterate();
 		}
 	}
 }
