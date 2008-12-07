@@ -1,17 +1,47 @@
-#include <mpi.h>
 #include <iostream>
 #include <string.h>
 #include <gameoflife.hpp>
-#include <vector>
-#include <utility>
 
-const int DIMENSIONS = 16;
-const int DEAD = 0;
-const int ALIVE = 1;
-const int ITERATIONS = 64;
-const int LENGTH = DIMENSIONS * DIMENSIONS;
+// static membes
+int Life::global_grid[LENGTH] = {
+	0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+};
 
-void print_grid( int iteration, int * grid, int height )
+Life::Life( int p_id, int p_num_procs )
+{
+	this->id = p_id;
+	this->num_procs = p_num_procs;
+	this->tag1 = 1;
+	this->tag2 = 2;
+	this->rows_per_process = DIMENSIONS / num_procs;
+    this->local_grid = new int[rows_per_process * DIMENSIONS];
+    this->local_grid_size = rows_per_process * DIMENSIONS;
+	this->two_row_size = 2 * DIMENSIONS;
+	this->calculate_indexes();
+}
+
+Life::~Life()
+{
+	delete[] this->local_grid;
+	this->local_grid = NULL;
+}
+
+void Life::print_grid( int iteration, int * grid, int height )
 {
 	std::cout << "Iteration " << iteration << ":\n";
 
@@ -25,7 +55,7 @@ void print_grid( int iteration, int * grid, int height )
 	}
 }
 
-int offset( int x, int y, bool bound )
+int Life::offset( int x, int y, bool bound )
 {
 	int new_x = x;
 	int new_y = y;
@@ -40,7 +70,7 @@ int offset( int x, int y, bool bound )
 	return new_x + ( new_y * DIMENSIONS );
 }
 
-int count_alive_neighbors( int x, int y, int * rows )
+int Life::count_alive_neighbors( int x, int y, int * rows )
 {
 	int count = 0;
 
@@ -65,7 +95,7 @@ int count_alive_neighbors( int x, int y, int * rows )
 	return count;
 }
 
-bool check_neighborhood( int x, int y, int * rows )
+bool Life::check_neighborhood( int x, int y, int * rows )
 {
 	int alive_count = count_alive_neighbors( x, y, rows );
 	if( rows[offset( x, y )] == DEAD )
@@ -82,29 +112,29 @@ bool check_neighborhood( int x, int y, int * rows )
 	return false;
 }
 
-int * process_rows( int * rows, int * local_grid, int amount_to_process )
+int * Life::process_rows( int * rows )
 {
 	// don't process first and last rows (only need for neighbor counting)
-	for( int i = 1; i <= amount_to_process; i++ )
+	for( int i = 1; i <= this->rows_per_process; i++ )
 	{
 		for( int x = 0; x < DIMENSIONS; x++ )
 		{
 			// rows x by y
 			// local_grid is x by (y-2), offset is 1 from top and bottom
 			if( check_neighborhood( x, i, rows ) )
-				local_grid[offset( x, i - 1 )] = ALIVE;
+				this->local_grid[offset( x, i - 1 )] = ALIVE;
 			else
-				local_grid[offset( x, i - 1 )] = DEAD;
+				this->local_grid[offset( x, i - 1 )] = DEAD;
 		}
 	}
 }
 
-int * grid_sums( int * rows, int amount_to_process )
+int * Life::grid_sums( int * rows )
 {
-	int * new_rows = new int[amount_to_process * DIMENSIONS];
+	int * new_rows = new int[rows_per_process * DIMENSIONS];
 
 	// don't process first and last rows (only need for neighbor counting)
-	for( int i = 1; i <= amount_to_process; i++ )
+	for( int i = 1; i <= this->rows_per_process; i++ )
 	{
 		for( int x = 0; x < DIMENSIONS; x++ )
 		{
@@ -119,7 +149,7 @@ int * grid_sums( int * rows, int amount_to_process )
 // returns a DIMENSIONS x 2
 // first row is the row above
 // last row is the row below
-int * setup_rows( int * rows, int start_index, int end_index )
+int * Life::setup_rows( int * rows, int start_index, int end_index )
 {
     int first_row = start_index - 1;
     int last_row = end_index + 1;
@@ -134,19 +164,19 @@ int * setup_rows( int * rows, int start_index, int end_index )
 	return new_rows;
 }
 
-void join_rows( int * two_rows, int * own_rows, int * destination, int rows_per_process )
+void Life::join_rows( int * two_rows, int * own_rows, int * destination )
 {
     for( int i = 0; i < DIMENSIONS; i++ )
     {
         destination[offset( i, 0 )] = two_rows[offset( i, 0 )];
-        destination[offset( i, rows_per_process + 1, false )] = two_rows[offset( i, 1 )];
+        destination[offset( i, this->rows_per_process + 1, false )] = two_rows[offset( i, 1 )];
 
-        for( int j = 1; j <= rows_per_process; j++ )
+        for( int j = 1; j <= this->rows_per_process; j++ )
             destination[offset( i, j )] = own_rows[offset( i, j - 1 )];
     }
 }
 
-void copy_rows( int * source, int * destination, int source_start_index, int source_end_index, int destination_start_index )
+void Life::copy_rows( int * source, int * destination, int source_start_index, int source_end_index, int destination_start_index )
 {
 	int length = source_end_index - source_start_index + 1;
 	for( int j = 0; j < length; j++ )
@@ -154,87 +184,53 @@ void copy_rows( int * source, int * destination, int source_start_index, int sou
 			destination[offset( i, j + destination_start_index )] = source[offset( i, j + source_start_index )];
 }
 
-void calculate_indexes( std::vector< std::pair< int, int > > &indexes, int rows_per_process, int num_procs )
+void Life::calculate_indexes()
 {
     int start_index = 0;
-    int end_index = rows_per_process - 1;
-    indexes.push_back( std::make_pair( start_index, end_index ) );
+    int end_index = this->rows_per_process - 1;
+    this->indexes.push_back( std::make_pair( start_index, end_index ) );
 
     for( int j = 1; j < num_procs; j++ )
     {
         start_index = end_index + 1;
-        end_index = start_index + rows_per_process - 1;
-        indexes.push_back( std::make_pair( start_index, end_index ) );
+        end_index = start_index + this->rows_per_process - 1;
+        this->indexes.push_back( std::make_pair( start_index, end_index ) );
     }
 }
 
-void setup_local_grid( int * global_grid, int * local_grid, std::vector< std::pair< int, int > > indexes, int local_grid_size, int num_procs, int tag )
+void Life::setup_local_grid()
 {
-      copy_rows( global_grid, local_grid, indexes[0].first, indexes[0].second, 0 );
-      int * rows_setup = new int[local_grid_size];
+      copy_rows( global_grid, this->local_grid, this->indexes[0].first, this->indexes[0].second, 0 );
+      int * rows_setup = new int[this->local_grid_size];
 
-      for( int j = 1; j < num_procs; j++ )
+      for( int j = 1; j < this->num_procs; j++ )
       {
           copy_rows( global_grid, rows_setup, indexes[j].first, indexes[j].second, 0 );
-          MPI_Send( rows_setup, local_grid_size, MPI_INT, j, tag, MPI_COMM_WORLD );
+          MPI_Send( rows_setup, this->local_grid_size, MPI_INT, j, this->tag1, MPI_COMM_WORLD );
       }
 
       delete[] rows_setup;
 	  rows_setup = NULL;
 }
 
-void node_process( int * two_rows, int * local_grid, int rows_per_process )
+void Life::node_process( int * two_rows )
 {
-	int * rows = new int[DIMENSIONS * ( rows_per_process + 2 )];
+	int * rows = new int[this->local_grid_size + this->two_row_size];
 
-	join_rows( two_rows, local_grid, rows, rows_per_process );
-	process_rows( rows, local_grid, rows_per_process );
+	join_rows( two_rows, this->local_grid, rows );
+	process_rows( rows );
 	delete[] rows;
 	rows = NULL;
 }
 
-int main( int argc, char ** argv )
+void Life::run( int iterations )
 {
-	int num_procs = 0; // number of processes
-	int ID; // process (or node) id
-	int tag1 = 1;
-	int tag2 = 2;
-	MPI_Status stat; // MPI status parameter
-
-	MPI_Init( & argc, &argv ); // initialize MPI environment
-	MPI_Comm_rank( MPI_COMM_WORLD, &ID ); // find rank of this process in the group
-	MPI_Comm_size( MPI_COMM_WORLD, &num_procs ); // find number of processes in the group
-
-	int rows_per_process = DIMENSIONS / num_procs;
-	std::vector< std::pair< int, int > > indexes;
-    int test_grid[LENGTH] = {
-        0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-        0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-    };
-    int local_grid[rows_per_process * DIMENSIONS];
-    int local_grid_size = rows_per_process * DIMENSIONS;
-
     // need special prep before the first iteration
-	if( ID == 0 )
+	if( this->id == 0 )
     {
-		print_grid( 0, test_grid, DIMENSIONS );
+		print_grid( 0, global_grid );
 
-        calculate_indexes( indexes, rows_per_process, num_procs );
-        setup_local_grid( test_grid, local_grid, indexes, local_grid_size, num_procs, tag1 );
+        setup_local_grid();
     }
     else
     {
@@ -242,57 +238,69 @@ int main( int argc, char ** argv )
     }
 
     // do the iterations
-	for( int i = 1; i <= ITERATIONS; i++ )
+	for( int i = 1; i <= iterations; i++ )
 	{
-		if( ID == 0 )
+		if( this->id == 0 )
 		{
-			//int * rows = setup_rows( start_index, end_index );
 			// send
 			for( int j = 1; j < num_procs; j++ )
 			{
-				int * rows_setup = setup_rows( test_grid, indexes[j].first, indexes[j].second );
-                int send_length = 2 * DIMENSIONS;
+				int * rows_setup = setup_rows( global_grid, this->indexes[j].first, this->indexes[j].second );
 
-				MPI_Send( rows_setup, send_length, MPI_INT, j, tag1, MPI_COMM_WORLD );
+				MPI_Send( rows_setup, this->two_row_size, MPI_INT, j, this->tag1, MPI_COMM_WORLD );
 
 				delete[] rows_setup;
 				rows_setup = NULL;
 			}
 
 			// process master node
-            int * two_rows = setup_rows( test_grid, indexes[0].first, indexes[0].second );
+            int * two_rows = setup_rows( global_grid, this->indexes[0].first, this->indexes[0].second );
 
-			node_process( two_rows, local_grid, rows_per_process );
+			node_process( two_rows );
 			delete[] two_rows;
 			two_rows = NULL;
 
 			// copy back to global grid
-			copy_rows( local_grid, test_grid, 0, rows_per_process - 1, indexes[0].first );
+			copy_rows( this->local_grid, global_grid, 0, this->rows_per_process - 1, this->indexes[0].first );
 
-			int * rows_receive = new int[local_grid_size];
+			int * rows_receive = new int[this->local_grid_size];
 			// receive
-			for( int j = 1; j < num_procs; j++ )
+			for( int j = 1; j < this->num_procs; j++ )
 			{
-				MPI_Recv( rows_receive, local_grid_size, MPI_INT, j, tag2, MPI_COMM_WORLD, &stat );
-				copy_rows( rows_receive, test_grid, 0, rows_per_process - 1, indexes[j].first );
+				MPI_Recv( rows_receive, this->local_grid_size, MPI_INT, j, this->tag2, MPI_COMM_WORLD, &this->stat );
+				copy_rows( rows_receive, global_grid, 0, this->rows_per_process - 1, this->indexes[j].first );
 			}
 			delete[] rows_receive;
 			rows_receive = NULL;
 
-			print_grid( i, test_grid, DIMENSIONS );
+			print_grid( i, global_grid );
 		}
 		else
 		{
-			int send_length = rows_per_process * DIMENSIONS;
-			int receive_length = 2 * DIMENSIONS;
-			int * rows_receive = new int[receive_length];
-			MPI_Recv( rows_receive, receive_length, MPI_INT, 0, tag1, MPI_COMM_WORLD, &stat );
+			int * rows_receive = new int[this->two_row_size];
+			MPI_Recv( rows_receive, this->two_row_size, MPI_INT, 0, this->tag1, MPI_COMM_WORLD, &this->stat );
 
-			node_process( rows_receive, local_grid, rows_per_process );
+			node_process( rows_receive );
 
-			MPI_Send( local_grid, local_grid_size, MPI_INT, 0, tag2, MPI_COMM_WORLD );
+			MPI_Send( this->local_grid, this->local_grid_size, MPI_INT, 0, this->tag2, MPI_COMM_WORLD );
 		}
 	}
+}
+
+int main( int argc, char ** argv )
+{
+	const int ITERATIONS = 64;
+	int num_procs = 0; // number of processes
+	int id; // process (or node) id
+	MPI_Status stat; // MPI status parameter
+
+	MPI_Init( & argc, &argv ); // initialize MPI environment
+	MPI_Comm_rank( MPI_COMM_WORLD, &id ); // find rank of this process in the group
+	MPI_Comm_size( MPI_COMM_WORLD, &num_procs ); // find number of processes in the group
+
+	Life life( id, num_procs );
+	life.run( ITERATIONS );
 
 	MPI_Finalize();
 }
+
