@@ -145,10 +145,6 @@ int * Life::grid_sums( int * rows )
 	return new_rows;
 }
 
-// send the row above and below
-// returns a DIMENSIONS x 2
-// first row is the row above
-// last row is the row below
 int * Life::setup_rows( int * rows, int start_index, int end_index )
 {
     int first_row = start_index - 1;
