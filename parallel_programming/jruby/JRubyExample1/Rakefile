@@ -1,0 +1,8 @@
+SOURCES = ["JRubyExample1.java"]
+OBJECTS = SOURCES.collect {|filename| "#{filename.split('.')[0]}.java" }
+JRUBY_LIB_DIR = "/opt/jruby/lib"
+JRUBY_ENGINE_DIR = "/opt/jsr223_engines/jruby/build"
+
+file "JRubyExample1.class" => "JRubyExample1.java" do
+  sh "javac -cp #{JRUBY_LIB_DIR}:#{JRUBY_ENGINE_DIR} JRubyExample1.java"
+end
