@@ -1,0 +1,26 @@
+require 'rake/clean' 
+NAME = 'face_detect'
+
+CLEAN.include( '*.gch', '*.o' )
+CLOBBER.include( NAME )
+
+CC = 'gcc'
+CFLAGS = "#{`pkg-config --cflags opencv`.chomp} -I."
+LFLAGS = `pkg-config --libs opencv`.chomp
+
+OBJECTS = ["#{NAME}.o"]
+
+desc "run program"
+task :run => NAME do
+  system( "./#{NAME} " )
+end
+
+task :default => [NAME]
+
+file NAME => OBJECTS do
+  sh "#{CC} -o #{NAME} #{OBJECTS.join( ' ' )} #{LFLAGS}"
+end
+
+file "#{NAME}.o" => ["#{NAME}.cpp", "#{NAME}.hpp" ] do
+  sh "#{CC} -c #{NAME}.cpp #{CFLAGS}"
+end
