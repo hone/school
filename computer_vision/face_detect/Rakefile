@@ -7,8 +7,11 @@ CLOBBER.include( NAME )
 # Paths
 OPENCV_UTILS = "../opencv_utils"
 HAGER_DIR = "data/ForVision"
+HAGER_PICS = (1..13).collect {|i| "#{HAGER_DIR}/Hager#{i}.jpg" }
 RAF_DIR = "data/picMe"
+RAF_PICS = (1..10).collect {|i| "#{RAF_DIR}/raphael_#{i}.png" }
 LAUREN_DIR = "data/lauren"
+LAUREN_PICS = (1..8).collect {|i| "#{LAUREN_DIR}/lauren#{i}.jpg" }
 SUPERBAD_DIR = "data/superbad"
 OUTPUT_DIR_NAME = "face_detect"
 
@@ -16,80 +19,7 @@ CC = 'gcc'
 CFLAGS = "#{`pkg-config --cflags opencv`.chomp} -I#{OPENCV_UTILS} -I."
 LFLAGS = `pkg-config --libs opencv`.chomp
 
-OBJECTS = ["#{NAME}.o", "image_raii.o"]
-
-def build_output_filename( filename, extension )
-  # build output name
-  output_parts = filename.split('.')
-  image_extension = output_parts.pop
-  output_parts.push extension
-  output_parts.push image_extension
-
-  output_parts.join('.')
-end
-
-def move_to_output_dir( filename )
-  filename_parts = filename.split('/')
-  file = filename_parts.pop
-  filename_parts.push OUTPUT_DIR_NAME
-  filename_parts.push file
-
-  filename_parts.join('/')
-end
-
-def build_output_dir( dirname )
-  dirs = dirname.split("/")
-  dirs.push OUTPUT_DIR_NAME
-  output_dir = dirs.join( '/' )
-
-  if( not File.exist?( output_dir ) )
-    FileUtils.mkdir( output_dir )
-  end
-
-  output_dir
-end
-
-def face_detect( dir )
-  # find pictures
-  pictures = Dir[ "#{dir}/*.jpg" ]
-  if( pictures.empty? )
-    pictures = Dir[ "#{dir}/*.png" ]
-  end
-
-  output_dir = build_output_dir( dir )
-  neighbors = (0..5)
-  flags = [0,1]
-  puts output_dir
-  flags.each do |flag|
-    neighbors.each do |neighbor|
-      pictures.each do |picture|
-        output_name = move_to_output_dir( build_output_filename( picture, "n#{neighbor}c#{flag}" ) )
-        puts output_name
-        sh "./#{NAME} #{picture} #{output_name} #{neighbor} #{flag}"
-      end
-    end
-  end
-end
-
-desc "run program"
-task :run_hager => NAME do
-  face_detect( HAGER_DIR )
-end
-
-desc "run program"
-task :run_raf => NAME do
-  face_detect( RAF_DIR )
-end
-
-desc "run program"
-task :run_lauren => NAME do
-  face_detect( LAUREN_DIR )
-end
-
-desc "run program"
-task :run_superbad => NAME do
-  face_detect( SUPERBAD_DIR )
-end
+OBJECTS = ["#{NAME}.o", "image_raii.o", "string_util.o", "window_raii.o"]
 
 task :default => [NAME]
 
@@ -97,10 +27,18 @@ file NAME => OBJECTS do
   sh "#{CC} -o #{NAME} #{OBJECTS.join( ' ' )} #{LFLAGS}"
 end
 
-file "#{NAME}.o" => ["#{NAME}.cpp", "#{NAME}.hpp" ] do
+file "#{NAME}.o" => ["#{NAME}.cpp", "#{NAME}.hpp"] do
   sh "#{CC} -c #{NAME}.cpp #{CFLAGS}"
 end
 
 file "image_raii.o" => ["#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/image_raii.hpp"] do
   sh "#{CC} -c #{OPENCV_UTILS}/image_raii.cpp #{CFLAGS}"
+end
+
+file "window_raii.o" => ["#{OPENCV_UTILS}/window_raii.cpp", "#{OPENCV_UTILS}/window_raii.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/window_raii.cpp #{CFLAGS}"
+end
+
+file "string_util.o" => ["#{OPENCV_UTILS}/string_util.cpp", "#{OPENCV_UTILS}/string_util.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/string_util.cpp #{CFLAGS}"
 end
