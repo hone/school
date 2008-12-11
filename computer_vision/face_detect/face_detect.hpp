@@ -7,8 +7,16 @@
 #include <sstream>
 #include <string>
 
+const int MAX_COLORS = 8;
+const CvScalar colors[] = {
+	{{0,0,255}}, {{0,128,255}}, {{0,255,255}}, {{0,255,0}},
+	{{255,128,0}},{{255,255,0}}, {{255,0,0}}, {{255,0,255}}
+
+};
+
 class FaceDetect
 {
+
 	private:
 		std::string cascade_name;
 		CvHaarClassifierCascade * cascade;
@@ -24,7 +32,8 @@ class FaceDetect
 		//		cascade = (CvHaarClassifierCascade*)cvLoad( cascade_name, 0, 0, 0 );
 		//	AND that storage is allocated:
 		//	CvMemStorage* storage = cvCreateMemStorage(0);
-		std::vector< IplImage * > extract_faces( IplImage * img, int scale_size, int min_neighbor, int flag, double scale = 1.3 );
+		std::vector< IplImage * > extract_faces( IplImage * img, int scale_size, int min_neighbor, int flag, double scale = 1.0 );
+		std::vector< IplImage * > detect_and_save( IplImage * img, std::string &filename, int scale_size, int min_neighbor, int flag, double scale = 1.0 );
 };
 
 #endif
