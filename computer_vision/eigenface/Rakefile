@@ -1,0 +1,109 @@
+require 'rake/clean' 
+require 'fileutils'
+
+NAME = 'eigenface'
+
+CLEAN.include( '*.gch', '*.o' )
+CLOBBER.include( NAME )
+
+# Paths
+OPENCV_UTILS = "../opencv_utils"
+FACE_DETECT = "../face_detect"
+HAGER_DIR = "data/ForVision"
+HAGER_PICS = (1..13).collect {|i| "#{HAGER_DIR}/Hager#{i}.jpg" }
+RAF_DIR = "data/picMe"
+RAF_PICS = (1..10).collect {|i| "#{RAF_DIR}/raphael_#{i}.png" }
+LAUREN_DIR = "data/lauren"
+LAUREN_PICS = (1..8).collect {|i| "#{LAUREN_DIR}/lauren#{i}.jpg" }
+SUPERBAD_DIR = "data/superbad"
+
+TRAIN_FILE = "train.txt"
+TEST_FILE = "test.txt"
+
+CC = 'gcc'
+CFLAGS = "#{`pkg-config --cflags opencv`.chomp} -I#{OPENCV_UTILS} -I#{FACE_DETECT} -I."
+LFLAGS = `pkg-config --libs opencv`.chomp
+
+OBJECTS = ["#{NAME}.o", "face_detect.o", "image_raii.o", "window_raii.o"]
+
+desc "run program"
+task :run_train => NAME do
+  if not File.exist?( "facedata.xml" )
+    FileUtils.touch( "facedata.xml" )
+  end
+  File.open( TRAIN_FILE, 'w' ) do |file|
+    file.puts "1 #{LAUREN_PICS[0]}"
+    file.puts "1 #{LAUREN_PICS[2]}"
+    file.puts "1 #{LAUREN_PICS[3]}"
+    file.puts "1 #{LAUREN_PICS[4]}"
+    file.puts "2 #{HAGER_PICS[0]}"
+    file.puts "2 #{HAGER_PICS[1]}"
+    file.puts "2 #{HAGER_PICS[2]}"
+    file.puts "2 #{HAGER_PICS[3]}"
+    file.puts "2 #{HAGER_PICS[4]}"
+    file.puts "2 #{HAGER_PICS[5]}"
+    file.puts "3 #{RAF_PICS[0]}"
+    file.puts "3 #{RAF_PICS[1]}"
+    file.puts "3 #{RAF_PICS[2]}"
+    file.puts "3 #{RAF_PICS[3]}"
+    file.puts "3 #{RAF_PICS[4]}"
+    file.puts "4 #{SUPERBAD_DIR}/evan.jpg"
+    file.puts "4 #{SUPERBAD_DIR}/evan2.jpg"
+#    file.puts "5 #{SUPERBAD_DIR}/mclovin.jpg"
+#    file.puts "5 #{SUPERBAD_DIR}/mclovin2.jpg"
+#    file.puts "6 #{SUPERBAD_DIR}/mclovin3.jpg"
+#    file.puts "6 #{SUPERBAD_DIR}/seth.jpg"
+#    file.puts "6 #{SUPERBAD_DIR}/seth2.jpg"
+#    file.puts "6 #{SUPERBAD_DIR}/seth3.jpg"
+  end
+
+  sh "./#{NAME} train"
+end
+
+task :run_test => NAME do
+  File.open( TEST_FILE, 'w' ) do |file|
+    HAGER_PICS.each do |pic|
+      file.puts "2 #{pic}"
+    end
+    LAUREN_PICS.each do |pic|
+      file.puts "1 #{pic}"
+    end
+    RAF_PICS.each do |pic|
+      file.puts "3 #{pic}"
+    end
+    file.puts "4 #{SUPERBAD_DIR}/evan.jpg"
+    file.puts "4 #{SUPERBAD_DIR}/evan2.jpg"
+#    file.puts "5 #{SUPERBAD_DIR}/mclovin.jpg"
+#    file.puts "5 #{SUPERBAD_DIR}/mclovin2.jpg"
+#    file.puts "6 #{SUPERBAD_DIR}/mclovin3.jpg"
+#    file.puts "6 #{SUPERBAD_DIR}/seth.jpg"
+#    file.puts "6 #{SUPERBAD_DIR}/seth2.jpg"
+#    file.puts "6 #{SUPERBAD_DIR}/seth3.jpg"
+    file.puts "4 #{SUPERBAD_DIR}/seth_and_evan.jpg"
+    file.puts "4 #{SUPERBAD_DIR}/seth_and_evan2.jpg"
+  end
+
+  sh "./#{NAME} test"
+end
+
+task :default => [NAME]
+
+file NAME => OBJECTS do
+  sh "#{CC} -o #{NAME} #{OBJECTS.join( ' ' )} #{LFLAGS}"
+end
+
+file "#{NAME}.o" => ["#{NAME}.cpp", "#{NAME}.hpp" ] do
+  sh "#{CC} -c #{NAME}.cpp #{CFLAGS}"
+end
+
+file "face_detect.o" => ["#{FACE_DETECT}/face_detect.cpp", "#{FACE_DETECT}/face_detect.hpp" ] do
+  sh "#{CC} -c #{FACE_DETECT}/face_detect.cpp #{CFLAGS}"
+end
+
+file "image_raii.o" => ["#{OPENCV_UTILS}/image_raii.cpp", "#{OPENCV_UTILS}/image_raii.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/image_raii.cpp #{CFLAGS}"
+end
+
+file "window_raii.o" => ["#{OPENCV_UTILS}/window_raii.cpp", "#{OPENCV_UTILS}/window_raii.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/window_raii.cpp #{CFLAGS}"
+end
