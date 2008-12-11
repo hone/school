@@ -19,12 +19,20 @@ CC = 'gcc'
 CFLAGS = "#{`pkg-config --cflags opencv`.chomp} -I#{OPENCV_UTILS} -I."
 LFLAGS = `pkg-config --libs opencv`.chomp
 
-OBJECTS = ["#{NAME}.o", "image_raii.o", "string_util.o", "window_raii.o"]
+OBJECTS = ['test.o', "#{NAME}.o", "image_raii.o", "string_util.o", "window_raii.o"]
 
-task :default => [NAME]
+task :default => ['test']
 
-file NAME => OBJECTS do
-  sh "#{CC} -o #{NAME} #{OBJECTS.join( ' ' )} #{LFLAGS}"
+task :run do
+  sh "./test #{SUPERBAD_DIR}/mclovin2.jpg"
+end
+
+file 'test' => OBJECTS do
+  sh "#{CC} -o test #{OBJECTS.join( ' ' )} #{LFLAGS}"
+end
+
+file 'test.o' => ['test.cpp'] do
+  sh "#{CC} -c test.cpp #{CFLAGS}"
 end
 
 file "#{NAME}.o" => ["#{NAME}.cpp", "#{NAME}.hpp"] do
