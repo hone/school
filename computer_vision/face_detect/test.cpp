@@ -23,14 +23,4 @@ int main( int argc, char ** argv )
 		cout << filename_thumbnail << endl;
 		cvSaveImage( filename_thumbnail.c_str(), faces[i] );
 	}
-
-	/*
-	WindowRAII window( "Face" );
-
-	for( int i = 0; i < faces.size(); i ++ )
-	{
-		cvShowImage( window.name, faces[i] );
-		cvWaitKey(0);
-	}
-	*/
 }

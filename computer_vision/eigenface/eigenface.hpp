@@ -11,7 +11,8 @@ void doPCA();
 void storeTrainingData();
 int  loadTrainingData(CvMat ** pTrainPersonNumMat);
 std::pair< int, double >  findNearestNeighbor(float * projectedTestFace);
-int  loadFaceImgArray(std::string filename, bool select_face = false );
+int  loadFaceImgArrayLearn(std::string filename);
+int  loadFaceImgArrayTest(std::string filename, bool select_face = false );
 void printUsage();
 
 #endif

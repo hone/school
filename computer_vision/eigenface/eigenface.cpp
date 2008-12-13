@@ -20,6 +20,7 @@
 //    eigenface test
 
 #include <vector>
+#include <map>
 #include <iostream>
 #include <stdio.h>
 #include <cvaux.h>
@@ -49,20 +50,18 @@ IplImage * pAvgTrainImg       = 0; // the average image
 IplImage ** eigenVectArr      = 0; // eigenvectors
 CvMat * eigenValMat           = 0; // eigenvalues
 CvMat * projectedTrainFaceMat = 0; // projected training faces
-vector< pair< int, int > > mapping;// reverse mapping of face indexes to image/face pair
+vector< pair< int, int > > mapping;// mapping of face indexes to image/face pair
+vector< vector< int > > backward_mapping;// mapping of face indexes to image/face pair
+vector< pair< IplImage *, string > > original_images;// keyed by original image
+vector< CvRect > rectangles;     // keyed by face indexes
+vector< int > numFaces;            // how many faces in each image
+int nImages = 0;
 
 //////////////////////////////////
 // main()
 //
 int main( int argc, char** argv )
 {
-	/*
-	ImageRAII image( "data/lauren/lauren1.jpg" );
-	WindowRAII window("Test");
-	cvShowImage( window.name, image.image );
-	cout << cvWaitKey(0);
-	*/
-
 	// validate that an input was specified
 	if( argc != 2 )
 	{
@@ -90,7 +89,7 @@ void learn()
 	int i, offset;
 
 	// load training data
-	nTrainFaces = loadFaceImgArray( TRAIN_FILE, true);
+	nTrainFaces = loadFaceImgArrayLearn( TRAIN_FILE );
 	if( nTrainFaces < 2 )
 	{
 		fprintf(stderr,
@@ -133,16 +132,13 @@ void recognize()
 	float * projectedTestFace = 0;
 
 	// load test images and ground truth for person number
-	nTestFaces = loadFaceImgArray( TEST_FILE );
+	nTestFaces = loadFaceImgArrayTest( TEST_FILE );
 	printf("%d test faces loaded\n", nTestFaces);
 
 	// load the saved training data
 	if( !loadTrainingData( &trainPersonNumMat ) ) return;
 
-	WindowRAII test_window("test face");
-	WindowRAII matching_window("matching face");
-	int total = 0;
-	int correct = 0;
+    std::vector< int > labels;
 	// project the test images onto the PCA subspace
 	projectedTestFace = (float *)cvAlloc( nEigens*sizeof(float) );
 	for(i=0; i<nTestFaces; i++)
@@ -167,24 +163,51 @@ void recognize()
 		picture_index = mapping[i].first;
 		face_index = mapping[i].second;
 
+        labels.push_back( nearest );
+
 		cout << distance << endl;
-
-		cvShowImage( test_window.name, faceImgArr[i] );
-		cvMoveWindow( matching_window.name, 0, 0 );
-		cvShowImage( matching_window.name, eigenVectArr[truth] );
-		cvMoveWindow( matching_window.name, 102, 0 );
-
-		int key = cvWaitKey(0);
-		if( key == Y_VALUE )
-		{
-			if( nearest == truth )
-				correct++;
-			total++;
-			printf( "pindex = %d, findex = %d, nearest = %d, Truth = %d, Distance = %f\n", picture_index, face_index, nearest, truth, distance );
-			cout << "Correct: " << correct << "/" << total << " : " << correct/(total * 1.0) * 100 << "%\n";
-		}
-
+        
+        printf( "pindex = %d, findex = %d, nearest = %d, Truth = %d, Distance = %f\n", picture_index, face_index, nearest, truth, distance );
 	}
+
+    cout << "before initialization\n";
+    cout << "mapping size : " << mapping.size() << endl;
+
+    vector< vector< pair< int, CvRect > > > label_rect_pairs;
+    cout << "after initialization\n";
+    FaceDetect fd;
+    // initialize map
+    int face_counter = 0;
+    for( i = 0; i < nImages; i++ )
+    {
+        vector< pair< int, CvRect > > lr;
+        for( int j = 0; j < numFaces[i]; j++ )
+        {
+            lr.push_back( make_pair( labels[face_counter], rectangles[face_counter] ) );
+            face_counter++;
+        }
+
+        label_rect_pairs.push_back( lr );
+    }
+
+    /*
+    for( i = 0; i < nTestFaces; i++ )
+    {
+        int image_index = mapping[i].first;
+        cout << image_index << endl;
+        label_rect_pairs[image_index].push_back( make_pair( labels[i], rectangles[i] ) );
+    }
+    */
+
+    for( int image_index = 0; image_index < label_rect_pairs.size(); image_index++ )
+    {
+        std::vector< string > dir_parts = tokenize_str( original_images[image_index].second, "/" );
+        std::vector< string > filename_parts = tokenize_str( dir_parts[dir_parts.size() - 1], "." );
+        string filename_output = "images/" + filename_parts[0] + "_label." + filename_parts[1];
+        cout << filename_output << endl;
+
+        fd.detect_and_label( original_images[image_index].first, label_rect_pairs[image_index], filename_output );
+    }
 }
 
 
@@ -331,16 +354,57 @@ void doPCA()
 	cvNormalize(eigenValMat, eigenValMat, 1, 0, CV_L1, 0);
 }
 
-
 //////////////////////////////////
 // loadFaceImgArray()
 //
-int loadFaceImgArray(string filename, bool select_face )
+int loadFaceImgArrayLearn(string filename)
 {
 	FILE * imgListFile = 0;
 	char imgFilename[512];
 	int iFace, nFaces=0;
-	int iImage, nImages = 0;
+
+	// open the input file
+	if( !(imgListFile = fopen(filename.c_str(), "r")) )
+	{
+		fprintf(stderr, "Can\'t open file %s\n", filename.c_str());
+		return 0;
+	}
+
+	// count the number of images
+	while( fgets(imgFilename, 512, imgListFile) ) ++nFaces;
+	rewind(imgListFile);
+
+	// allocate the face-image array and person number matrix
+	faceImgArr        = (IplImage **)cvAlloc( nFaces*sizeof(IplImage *) );
+	personNumTruthMat = cvCreateMat( 1, nFaces, CV_32SC1 );
+
+	// store the face images in an array
+	for( iFace=0; iFace<nFaces; iFace++ )
+	{
+		// read person number and name of image file
+		fscanf(imgListFile,	"%d %s", personNumTruthMat->data.i+iFace, imgFilename);
+
+		// load the image
+		faceImgArr[iFace] = cvLoadImage(imgFilename, CV_LOAD_IMAGE_GRAYSCALE);
+
+		if( !faceImgArr[iFace] )
+		{
+			fprintf(stderr, "Can\'t load image from %s\n", imgFilename);
+			return 0;
+		}
+	}
+
+	fclose(imgListFile);
+
+	return nFaces;
+}
+
+int loadFaceImgArrayTest(string filename, bool select_face )
+{
+	FILE * imgListFile = 0;
+	char imgFilename[512];
+	int iFace, nFaces=0;
+	int iImage = 0;
 
 	// open the input file
 	if( !(imgListFile = fopen(filename.c_str(), "r")) )
@@ -354,7 +418,7 @@ int loadFaceImgArray(string filename, bool select_face )
 	rewind(imgListFile);
 
 	FaceDetect fd;
-	vector< vector< IplImage *> > faces;
+	vector< vector< pair< IplImage *, CvRect > > > faces;
 	vector< int > truth;
 	int * truthNum = new int;
 
@@ -362,29 +426,19 @@ int loadFaceImgArray(string filename, bool select_face )
 	for( iImage=0; iImage<nImages; iImage++ )
 	{
 		// read person number and name of image file
-		//fscanf(imgListFile,
-		//	"%d %s", personNumTruthMat->data.i+iFace, imgFilename);
 		fscanf(imgListFile, "%d %s", truthNum, imgFilename);
 
 		truth.push_back( *truthNum );
 
 		// load the image
 		ImageRAII image(imgFilename);
-		vector<IplImage *> image_faces = fd.extract_faces( image.image, SCALE_SIZE, MIN_NEIGHBOR, FLAG );
+		vector< pair< IplImage *, CvRect > > image_faces = fd.extract_faces( image.image, SCALE_SIZE, MIN_NEIGHBOR, FLAG );
 		if( select_face )
 			nFaces++;
 		else
 			nFaces += image_faces.size();
 		faces.push_back( image_faces );
-
-		//faceImgArr[iFace] = cvLoadImage(imgFilename, CV_LOAD_IMAGE_GRAYSCALE);
-		/*
-		if( !faceImgArr[iFace] )
-		{
-			fprintf(stderr, "Can\'t load image from %s\n", imgFilename);
-			return 0;
-		}
-		*/
+        original_images.push_back( make_pair( cvCloneImage( image.image ), string( imgFilename ) ) );
 	}
 	delete truthNum;
 	truthNum = NULL;
@@ -399,41 +453,24 @@ int loadFaceImgArray(string filename, bool select_face )
 	for( iImage = 0; iImage < nImages; iImage++ )
 	{
 		int num_faces = faces[iImage].size();
+        numFaces.push_back( num_faces );
+        backward_mapping.push_back( vector< int >() );
 		cout << "New image\n";
 
 		for( iFace = 0; iFace < num_faces; iFace++ )
 		{
-			if( select_face )
-			{
-				WindowRAII window( "Hit Y to select a face, else hit any other key" );
-				cvShowImage( window.name, faces[iImage][iFace] );
-				int key = cvWaitKey(0);
+            faceImgArr[face_counter] = faces[iImage][iFace].first;
+            *(personNumTruthMat->data.i+face_counter) = truth[iImage];
+            mapping.push_back( make_pair( iImage, iFace ) );
+            backward_mapping[iImage].push_back( face_counter );
+            rectangles.push_back( faces[iImage][iFace].second );
 
-				if( key == Y_VALUE )
-				{
-					faceImgArr[face_counter] = faces[iImage][iFace];
-					*(personNumTruthMat->data.i+face_counter) = truth[iImage];
-					mapping.push_back( make_pair( iImage, iFace ) );
-					cout << "Setting face.\n";
-
-					face_counter++;
-				}
-
-			}
-			else
-			{
-				faceImgArr[face_counter] = faces[iImage][iFace];
-				*(personNumTruthMat->data.i+face_counter) = truth[iImage];
-				 mapping.push_back( make_pair( iImage, iFace ) );
-
-				face_counter++;
-			}
+            face_counter++;
 		}
 	}
 
 	return nFaces;
 }
-
 
 //////////////////////////////////
 // printUsage()
