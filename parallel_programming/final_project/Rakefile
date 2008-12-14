@@ -1,0 +1,14 @@
+RUBY_BIN = "/opt/jruby/bin/jruby"
+PATH = "/home/hone/.evolution/mail/imap/hone@mail.hone.wornpath.net/folders/INBOX"
+SERIALIZED_FILE = "mail.dump"
+RUN_FILE = "runner.rb"
+
+desc "load files"
+task :load do
+  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{PATH}"
+end
+
+desc "run utility"
+task :run do
+  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE}"
+end
