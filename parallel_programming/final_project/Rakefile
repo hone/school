@@ -15,7 +15,7 @@ end
 
 desc "run skynet server"
 task :start_skynet_server_from_address_count do
-  sh "skynet start --workers -r from_address_count.rb"
+  sh "skynet start --workers=2 -r *.rb"
 end
 
 desc "run skynet console"
