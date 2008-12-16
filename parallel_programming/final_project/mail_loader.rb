@@ -1,5 +1,4 @@
 require 'tmail'
-require 'ftools'
 
 # Utility to parse all the e-mail
 class MailLoader
@@ -9,7 +8,7 @@ class MailLoader
   def initialize( serialized_file, path = nil )
     @mails = Array.new
 
-    if path.nil?
+    if File.exist?( serialized_file )
       File.open( serialized_file ) do |file|
         @mails = Marshal.load( file )
       end
