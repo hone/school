@@ -1,23 +1,17 @@
 require 'mail_loader'
+require 'base_job'
 
-class FromAddressCount
-  include SkynetDebugger # provides logging methods
+class FromAddressCount < BaseJob
 
   def self.run
-    mail_loader = MailLoader.new( MailLoader::SERIALIZED_FILE )
-    from_addresses = mail_loader.mails.collect {|mail| mail.from }.flatten
+    inbox_mail_loader = MailLoader.new( INBOX_FILE )
+    old_messages_mail_loader = MailLoader.new( OLD_MESSAGES_FILE )
+    data = build_data( inbox_mail_loader.mails + old_messages_mail_loader.mails )
 
-    job = Skynet::Job.new(
-      :mappers => 2,
-      :reducers => 1,
-      :map_reduce_class => self,
-      :map_data => from_addresses
-    )
-
-    results = job.run
+    run_tests( 3, 3, data )
   end
 
-  def self.map(mails)
+  def self.map( mails )
     result = Array.new
     mails.each do |mail|
       result << [mail, 1]
@@ -26,7 +20,7 @@ class FromAddressCount
     result
   end
 
-  def self.reduce(pairs)
+  def self.reduce( pairs )
     totals = Hash.new
     pairs.each do |pair|
       from, count = pair[0], pair[1]
@@ -35,5 +29,9 @@ class FromAddressCount
     end
 
     totals
+  end
+
+  def self.build_data( mails )
+    mails.collect {|mail| mail.from }.flatten
   end
 end

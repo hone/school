@@ -1,11 +1,23 @@
 RUBY_BIN = "jruby"
-PATH = "/home/hone/.evolution/mail/imap/hone@mail.hone.wornpath.net/folders/INBOX"
+INBOX_PATH = "/home/hone/.evolution/mail/imap/hone@mail.hone.wornpath.net/folders/INBOX"
+SENT_PATH = "/home/hone/.evolution/mail/imap/hone@mail.hone.wornpath.net/folders/INBOX/subfolders/Sent"
+OLD_MESSAGES_PATH = "/home/hone/.evolution/mail/imap/hone@mail.hone.wornpath.net/folders/INBOX/subfolders/old-messages"
 SERIALIZED_FILE = "mail.dump"
 RUN_FILE = "runner.rb"
 
-desc "load files"
-task :load do
-  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{PATH}"
+desc "load files inbox"
+task :load_inbox do
+  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{INBOX_PATH}"
+end
+
+desc "load files sent"
+task :load_sent do
+  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{SENT_PATH}"
+end
+
+desc "load files sent"
+task :load_old_messages do
+  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{OLD_MESSAGES_PATH}"
 end
 
 desc "run utility"
@@ -14,11 +26,13 @@ task :run do
 end
 
 desc "run skynet server"
-task :start_skynet_server_from_address_count do
-  sh "skynet start --workers=2 -r *.rb"
+task :start_skynet do
+  puts ARGV[1]
+  sh "skynet start --workers=6 -r #{ARGV[1]}"
+  sh "skynet console -r #{ARGV[1]}"
 end
 
-desc "run skynet console"
-task :skynet_console do
-  sh "skynet console -r *.rb"
+desc "stop skynet server"
+task :stop_skynet do
+  sh "skynet stop"
 end
