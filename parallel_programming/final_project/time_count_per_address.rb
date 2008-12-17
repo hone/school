@@ -1,7 +1,6 @@
 require 'mail_loader'
 require 'base_job'
 
-class MailEntry < Struct.new( :from, :time ); end
 class TimeRange < Struct.new( :start, :end, :index ); end
 
 class TimeCountPerAdress < BaseJob
@@ -21,25 +20,29 @@ class TimeCountPerAdress < BaseJob
   end
 
   def self.map( mails )
-    result = Array.new
+    results = Array.new
     mails.each do |mail|
-      case mail.time
-      when EARLY_MORNING.start .. EARLY_MORNING.end
-        result << ["#{mail.from} | #{EARLY_MORNING.index}", 1]
-      when BUSINESS_MORNING.start .. BUSINESS_MORNING.end
-        result << ["#{mail.from} | #{BUSINESS_MORNING.index}", 1]
-      when BUSINESS_AFTERNOON.start .. BUSINESS_AFTERNOON.end
-        result << ["#{mail.from} | #{BUSINESS_AFTERNOON.index}", 1]
-      when EVENING.start .. EVENING.end
-        result << ["#{mail.from} | #{EVENING.index}", 1]
-      when LATE_EVENING.start .. LATE_EVENING.end
-        result << ["#{mail.from} | #{LATE_EVENING.index}", 1]
-      else
-        raise "Invalid hour parameter: #{mail}"
+      mail[0].each do |from|
+        index =
+        case mail[1]
+        when EARLY_MORNING.start .. EARLY_MORNING.end
+          EARLY_MORNING.index
+        when BUSINESS_MORNING.start .. BUSINESS_MORNING.end
+          BUSINESS_MORNING.index
+        when BUSINESS_AFTERNOON.start .. BUSINESS_AFTERNOON.end
+          BUSINESS_AFTERNOON.index
+        when EVENING.start .. EVENING.end
+          EVENING.index
+        when LATE_EVENING.start .. LATE_EVENING.end
+          LATE_EVENING.index
+        else
+          raise "Invalid hour parameter: #{mail[1]}"
+        end
+        results << ["#{from} | #{index}", 1]
       end
     end
 
-    result
+    results
   end
 
   def self.reduce(pairs)
@@ -54,6 +57,6 @@ class TimeCountPerAdress < BaseJob
   end
 
   def self.build_data( mails )
-    mails.collect {|mail| MailEntry.new( mail.from, mail.date.hour ) }.flatten
+    mails.collect {|mail| [mail.from, mail.date.hour] }
   end
 end

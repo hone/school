@@ -7,7 +7,7 @@ class AddressConnection < BaseJob
   def self.run
     inbox_mail_loader = MailLoader.new( INBOX_FILE )
     old_messages_mail_loader = MailLoader.new( OLD_MESSAGES_FILE )
-    data = build_data( mail_loader.mails )
+    data = build_data( inbox_mail_loader.mails + old_messages_mail_loader.mails )
 
     results = run_tests( 3, 3, data )
     results.collect {|result| result[1] }
