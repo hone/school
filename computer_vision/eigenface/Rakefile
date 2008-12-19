@@ -20,11 +20,11 @@ SUPERBAD_DIR = "data/superbad"
 TRAIN_FILE = "train.txt"
 TEST_FILE = "test.txt"
 
-CC = 'gcc'
+CC = 'gcc -g'
 CFLAGS = "#{`pkg-config --cflags opencv`.chomp} -I#{OPENCV_UTILS} -I#{FACE_DETECT} -I."
 LFLAGS = `pkg-config --libs opencv`.chomp
 
-OBJECTS = ["#{NAME}.o", "face_detect.o", "image_raii.o", "window_raii.o"]
+OBJECTS = ["#{NAME}.o", "face_detect.o", "image_raii.o", "window_raii.o", "string_util.o"]
 
 desc "run program"
 task :run_train => NAME do
@@ -106,4 +106,8 @@ end
 
 file "window_raii.o" => ["#{OPENCV_UTILS}/window_raii.cpp", "#{OPENCV_UTILS}/window_raii.hpp"] do
   sh "#{CC} -c #{OPENCV_UTILS}/window_raii.cpp #{CFLAGS}"
+end
+
+file "string_util.o" => ["#{OPENCV_UTILS}/string_util.cpp", "#{OPENCV_UTILS}/string_util.hpp"] do
+  sh "#{CC} -c #{OPENCV_UTILS}/string_util.cpp #{CFLAGS}"
 end

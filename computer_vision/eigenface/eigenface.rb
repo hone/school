@@ -19,6 +19,7 @@ class Eigenface < Shoes
     @images = Array.new
     @train_images = Array.new
     @test_images = Array.new
+    @total_time = 0.0
     draw_main_window
 
     keypress do |k|
@@ -61,7 +62,6 @@ class Eigenface < Shoes
   end
 
   def detect_faces
-    debug( @images.inspect )
     File.open( TRAIN_FILE, 'w' ) do |file|
       label = 1
       @train_images.each do |train_set|
@@ -111,6 +111,8 @@ class Eigenface < Shoes
   end
 
   def open_folder( train )
+    start_time = Time.now
+
     last_index = @images.size
     # pull images
     folder = ask_open_folder
@@ -144,6 +146,8 @@ class Eigenface < Shoes
 
         ImageEntry.new( output_filename, nil, nil )
       end
+
+
     end
 
     @images += current_images
@@ -152,8 +156,11 @@ class Eigenface < Shoes
     else
       @index = last_index
     end
-    debug( @images.inspect )
     @image = @images[@index].image
+
+    end_time = Time.now
+    @total_time += end_time - start_time
+    debug( "Total time: #{@total_time}" )
 
     self.clear
     draw_main_window
