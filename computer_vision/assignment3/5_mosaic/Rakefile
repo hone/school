@@ -14,7 +14,7 @@ OBJECTS = ["#{NAME}.o", 'image_raii.o', 'matrix_raii.o', 'window_raii.o']
 
 desc "run program"
 task :run => NAME do
-  system( "./#{NAME}" )
+  system( "./#{NAME} panorama1/dc1.png panorama1/dc2.png panorama1/points1.out panorama1/points2.out panorama1/feature1.out panorama1/feature2.out" )
 end
 
 task :default => [NAME]

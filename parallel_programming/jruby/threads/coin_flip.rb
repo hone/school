@@ -34,7 +34,7 @@ def calculate_iterations( num_of_iterations, num_of_threads )
   [iterations_per_thread, extra_iterations]
 end
 
-if $0 == __FILE__
+#if $0 == __FILE__
   if ARGV.length < 2
     $stderr.puts "need to specify number of iterations and number of threads."
     exit
@@ -58,12 +58,11 @@ if $0 == __FILE__
   end
 
   threads.each {|thread| thread.join }
-  total_heads = coins.inject( 0 ) {|sum, coin| coin.heads_count + sum }
-
   end_time = Time.now
 
+  total_heads = coins.inject( 0 ) {|sum, coin| coin.heads_count + sum }
+
+
   puts "#{total_heads} heads in #{num_of_iterations} coin tosses."
-  puts "Start time: #{start_time}"
-  puts "End time: #{end_time}"
   puts "Elapsed time: #{end_time - start_time} s"
-end
+#end

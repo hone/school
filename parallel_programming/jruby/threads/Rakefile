@@ -1,0 +1,18 @@
+SOURCE = "coin_flip.rb"
+OBJECT = "coin_flip.class"
+
+ITERATIONS = 10000000
+
+task :default => "coin_flip.class"
+
+file OBJECT => [SOURCE] do
+  sh "jruby -S jrubyc #{SOURCE}"
+end
+
+task :jrun  => [OBJECT] do
+  sh "java -server -Djruby.thread.pooling=true #{OBJECT.split('.').first} #{ITERATIONS} 1"
+end
+
+task :jrun2  => [OBJECT] do
+  sh "java -server -Djruby.thread.pooling=true #{OBJECT.split('.').first} #{ITERATIONS} 1"
+end

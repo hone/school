@@ -4,20 +4,31 @@ SENT_PATH = "/home/hone/.evolution/mail/imap/hone@mail.hone.wornpath.net/folders
 OLD_MESSAGES_PATH = "/home/hone/.evolution/mail/imap/hone@mail.hone.wornpath.net/folders/INBOX/subfolders/old-messages"
 SERIALIZED_FILE = "mail.dump"
 RUN_FILE = "runner.rb"
+THREADS = 2
 
 desc "load files inbox"
 task :load_inbox do
-  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{INBOX_PATH}"
+  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{THREADS} #{INBOX_PATH}"
 end
 
 desc "load files sent"
 task :load_sent do
-  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{SENT_PATH}"
+  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{THREADS} #{SENT_PATH}"
 end
 
 desc "load files sent"
 task :load_old_messages do
-  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{OLD_MESSAGES_PATH}"
+  sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{THREADS} #{OLD_MESSAGES_PATH}"
+end
+
+desc "load files sent"
+task :test_load do
+  1.upto( 5 ) do |i|
+    if File.exist?( SERIALIZED_FILE )
+      FileUtils.rm( SERIALIZED_FILE )
+    end
+    sh "#{RUBY_BIN} #{RUN_FILE} #{SERIALIZED_FILE} #{i} #{OLD_MESSAGES_PATH}"
+  end
 end
 
 desc "run utility"

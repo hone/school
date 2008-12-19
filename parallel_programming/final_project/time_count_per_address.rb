@@ -3,7 +3,7 @@ require 'base_job'
 
 class TimeRange < Struct.new( :start, :end, :index ); end
 
-class TimeCountPerAdress < BaseJob
+class TimeCountPerAddress < BaseJob
   EARLY_MORNING = TimeRange.new( 0, 7, 1 )
   BUSINESS_MORNING = TimeRange.new( 8, 12, 2 )
   BUSINESS_AFTERNOON = TimeRange.new( 13, 17, 3 )

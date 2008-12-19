@@ -1,0 +1,10 @@
+Instructions:
+
+1.  Install skynet according to http://skynet.rubyforge.com
+2.  run skynet_install . to install it in the current directory ( note the '.' )
+3.  run skynet start -r <file you want to run>
+4.  run skynet console -r <file you want to run>, to bring up the console
+5.  Type the command you want to run.
+
+Look at the Rakefile for some help
+you need to dump an e-mail box by specifying the folders of e-mails and use the MailLoader utility.
