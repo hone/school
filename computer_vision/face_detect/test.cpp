@@ -14,7 +14,7 @@ int main( int argc, char ** argv )
 	FaceDetect fd;
 	ImageRAII image( argv[1] );
 	string filename( argv[2] );
-	vector< IplImage * > faces = fd.detect_and_save( image.image, filename, 100, 2, 0, 1.0 );
+	vector< IplImage * > faces = fd.detect_and_save( image.image, filename, 100, 2, CV_HAAR_DO_CANNY_PRUNING, 1.0 );
 
 	vector< string > filename_parts =  tokenize_str( filename, "." );
 	for( int i = 0; i < faces.size(); i++ )

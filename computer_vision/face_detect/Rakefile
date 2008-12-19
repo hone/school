@@ -21,14 +21,14 @@ LFLAGS = `pkg-config --libs opencv`.chomp
 
 OBJECTS = ['test.o', "#{NAME}.o", "image_raii.o", "string_util.o", "window_raii.o"]
 
-task :default => ['test']
+task :default => NAME
 
 task :run do
-  sh "./test #{SUPERBAD_DIR}/mclovin2.jpg"
+  sh "#{NAME} #{SUPERBAD_DIR}/mclovin2.jpg"
 end
 
-file 'test' => OBJECTS do
-  sh "#{CC} -o test #{OBJECTS.join( ' ' )} #{LFLAGS}"
+file NAME => OBJECTS do
+  sh "#{CC} -o #{NAME} #{OBJECTS.join( ' ' )} #{LFLAGS}"
 end
 
 file 'test.o' => ['test.cpp'] do

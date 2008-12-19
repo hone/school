@@ -1,0 +1,4 @@
+eigenface
+face_detect
+*.o
+*.swp
